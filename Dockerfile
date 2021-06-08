@@ -8,7 +8,7 @@ ARG PASSENGER_VERSION=6.0.6
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.1
-ARG OPENSSL_VERSION=1.1.1g
+ARG OPENSSL_VERSION=1.1.1k
 ARG PCRE_VERSION=8.44
 ARG ZLIB_VERSION=1.2.11
 ARG LIBGD_VERSION=2.3.2
@@ -462,7 +462,11 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 --with-debug \
 --with-pcre-jit \
 --with-compat \
---with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
+# NOTE: NOT adding --with-openssl flag because then the OpenSSL version is hardcoded as opposed to using what's on the server.
+# With the flag not present, "nginx -V" will show both the version it was built with, and the version it's running with - for example:
+# $ nginx -V 2>&1 | grep OpenSSL
+# built with OpenSSL 1.1.1g  21 Apr 2020 (running with OpenSSL 1.1.1  11 Sep 2018)
+# --with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
 --with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
 --with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
 --with-threads \
