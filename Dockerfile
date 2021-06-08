@@ -444,8 +444,8 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/
     tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz &&\
     cd nginx-${NGINX_VERSION} &&\
     ./configure \
-        --with-cc-opt='-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2' \
-        --with-ld-opt='-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
+        --with-cc-opt="-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2" \
+        --with-ld-opt="-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC" \
         --prefix=/usr/share/nginx \
         --conf-path=/etc/nginx/nginx.conf \
         --http-log-path=/var/log/nginx/access.log \
