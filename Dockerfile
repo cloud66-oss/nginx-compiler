@@ -36,6 +36,7 @@ ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.3
+ARG NGX_MRUBY_VERSION=2.2.3
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -352,17 +353,17 @@ RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VER
 
 FROM base AS nginx
 
-ARG OPENSSL_VERSION
-ARG ZLIB_VERSION
 ARG NGINX_VERSION
-ARG NGINX_DEB_VERSION
-ARG LIBMAXMINDDB_VERSION
-ARG MODSECURITY_VERSION
+
+ARG OPENSSL_VERSION
 ARG PCRE_VERSION
+ARG ZLIB_VERSION
+ARG MODSECURITY_VERSION
 ARG LUAJIT2_VERSION
 ARG LUAJIT2_SHORT_VERSION
 ARG LUA_RESTY_CORE_VERSION
 ARG LUA_RESTY_LRUCACHE_VERSION
+ARG LIBMAXMINDDB_VERSION
 
 ARG MODSECURITY_MODULE_VERSION
 ARG HEADERS_MORE_MODULE_VERSION
@@ -379,6 +380,9 @@ ARG UPLOAD_PROGRESS_MODULE_VERSION
 ARG UPSTREAM_FAIR_MODULE_VERSION
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION
 ARG HTTP_GEOIP2_MODULE_VERSION
+ARG NGX_MRUBY_VERSION
+
+ARG NGINX_DEB_VERSION
 
 WORKDIR /usr/local/build
 
@@ -439,34 +443,49 @@ RUN current_state.sh before
 ENV LUAJIT_LIB=/usr/local/lib
 ENV LUAJIT_INC=/usr/local/include/luajit-${LUAJIT2_SHORT_VERSION}
 
-# NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
+# NOTE: define NGINX configure options here because mruby also needs them
+ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
+--with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2\" \
+--with-ld-opt=\"-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC\" \
+--prefix=/usr/share/nginx \
+--conf-path=/etc/nginx/nginx.conf \
+--http-log-path=/var/log/nginx/access.log \
+--error-log-path=/var/log/nginx/error.log \
+--lock-path=/var/lock/nginx.lock \
+--pid-path=/run/nginx.pid \
+--modules-path=/usr/lib/nginx/modules \
+--http-client-body-temp-path=/var/lib/nginx/body \
+--http-fastcgi-temp-path=/var/lib/nginx/fastcgi \
+--http-proxy-temp-path=/var/lib/nginx/proxy \
+--http-scgi-temp-path=/var/lib/nginx/scgi \
+--http-uwsgi-temp-path=/var/lib/nginx/uwsgi \
+--with-debug \
+--with-pcre-jit \
+--with-compat \
+--with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
+--with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
+--with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
+--with-threads \
+--with-mail \
+--with-stream \
+"
+
+# NOTE: get NGINX source code here because mruby also needs it
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz &&\
-    cd nginx-${NGINX_VERSION} &&\
-    ./configure \
-        --with-cc-opt='-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2' \
-        --with-ld-opt='-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC' \
-        --prefix=/usr/share/nginx \
-        --conf-path=/etc/nginx/nginx.conf \
-        --http-log-path=/var/log/nginx/access.log \
-        --error-log-path=/var/log/nginx/error.log \
-        --lock-path=/var/lock/nginx.lock \
-        --pid-path=/run/nginx.pid \
-        --modules-path=/usr/lib/nginx/modules \
-        --http-client-body-temp-path=/var/lib/nginx/body \
-        --http-fastcgi-temp-path=/var/lib/nginx/fastcgi \
-        --http-proxy-temp-path=/var/lib/nginx/proxy \
-        --http-scgi-temp-path=/var/lib/nginx/scgi \
-        --http-uwsgi-temp-path=/var/lib/nginx/uwsgi \
-        --with-debug \
-        --with-pcre-jit \
-        --with-compat \
-	--with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
-        --with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
-        --with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
-        --with-threads \
-        --with-mail \
-        --with-stream \
+    tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz
+
+RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
+    cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
+    ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' --with-openssl-src=/usr/local/build/openssl-${OPENSSL_VERSION} &&\
+    make build_mruby &&\
+    make generate_gems_config_dynamic
+
+# NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
+RUN cd nginx-${NGINX_VERSION} &&\
+    echo '#!/usr/bin/env bash' >> real_configure &&\
+    echo "./configure \
+        ${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES} \
         --with-http_ssl_module \
         --with-http_stub_status_module \
         --with-http_realip_module \
@@ -504,7 +523,10 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
-        --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION} &&\
+        --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
+        --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
+    chmod +x ./real_configure &&\
+    ./real_configure &&\
     make &&\
     make install
 
@@ -515,6 +537,35 @@ RUN cp /usr/share/nginx/sbin/nginx /usr/sbin/nginx
 
 # Required for NGINX to find the openresty library
 RUN ln -s /usr/local/lib/lua/resty /usr/local/share/luajit-${LUAJIT2_VERSION}/resty
+
+RUN echo "{ \
+  \"NGINX_VERSION\":\"${NGINX_VERSION}\", \
+  \"OPENSSL_VERSION\":\"${OPENSSL_VERSION}\", \
+  \"PCRE_VERSION\":\"${PCRE_VERSION}\", \
+  \"ZLIB_VERSION\":\"${ZLIB_VERSION}\", \
+  \"MODSECURITY_VERSION\":\"${MODSECURITY_VERSION}\", \
+  \"LUAJIT2_VERSION\":\"${LUAJIT2_VERSION}\", \
+  \"LUAJIT2_SHORT_VERSION\":\"${LUAJIT2_SHORT_VERSION}\", \
+  \"LUA_RESTY_CORE_VERSION\":\"${LUA_RESTY_CORE_VERSION}\", \
+  \"LUA_RESTY_LRUCACHE_VERSION\":\"${LUA_RESTY_LRUCACHE_VERSION}\", \
+  \"LIBMAXMINDDB_VERSION\":\"${LIBMAXMINDDB_VERSION}\", \
+  \"MODSECURITY_MODULE_VERSION\":\"${MODSECURITY_MODULE_VERSION}\", \
+  \"HEADERS_MORE_MODULE_VERSION\":\"${HEADERS_MORE_MODULE_VERSION}\", \
+  \"HTTP_AUTH_PAM_MODULE_VERSION\":\"${HTTP_AUTH_PAM_MODULE_VERSION}\", \
+  \"CACHE_PURGE_MODULE_VERSION\":\"${CACHE_PURGE_MODULE_VERSION}\", \
+  \"DAV_EXT_MODULE_VERSION\":\"${DAV_EXT_MODULE_VERSION}\", \
+  \"DEVEL_KIT_MODULE_VERSION\":\"${DEVEL_KIT_MODULE_VERSION}\", \
+  \"ECHO_MODULE_VERSION\":\"${ECHO_MODULE_VERSION}\", \
+  \"FANCYINDEX_MODULE_VERSION\":\"${FANCYINDEX_MODULE_VERSION}\", \
+  \"NCHAN_MODULE_VERSION\":\"${NCHAN_MODULE_VERSION}\", \
+  \"LUA_MODULE_VERSION\":\"${LUA_MODULE_VERSION}\", \
+  \"RTMP_MODULE_VERSION\":\"${RTMP_MODULE_VERSION}\", \
+  \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
+  \"UPSTREAM_FAIR_MODULE_VERSION\":\"${UPSTREAM_FAIR_MODULE_VERSION}\", \
+  \"HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION\":\"${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}\", \
+  \"HTTP_GEOIP2_MODULE_VERSION\":\"${HTTP_GEOIP2_MODULE_VERSION}\", \
+  \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\" \
+}" >> /etc/nginx/compilation-configuration.json
 
 RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
