@@ -25,3 +25,6 @@ passenger-status
 
 echo "Testing NGINX mruby module"
 curl localhost:80/mruby | grep "mruby success"
+
+echo "Testing NGINX lua module"
+curl localhost:80/lua | grep "lua success"

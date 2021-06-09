@@ -489,6 +489,7 @@ RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY
     make generate_gems_config_dynamic
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
+# NOTE: couldn't think of a way to substitute NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES without echoing it to a file - everything else I tried ended up removing some characters (e.g. quotes)
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_configure &&\
     echo "./configure \
