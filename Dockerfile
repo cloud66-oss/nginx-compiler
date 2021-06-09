@@ -76,9 +76,6 @@ RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P
 
 ADD current_state.sh /usr/local/bin
 ADD generate_deb.rb /usr/local/bin
-ADD include_modules.rb /usr/local/bin
-ADD setup_passenger.rb /usr/local/bin
-ADD test_nginx.sh /usr/local/bin
 
 # CONFIGURE REQUIREMENTS FOR MODULES
 ######################################################################################################################################################################################################################################
@@ -273,6 +270,9 @@ ARG PASSENGER_DEB_VERSION
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION
 WORKDIR /usr/local/build
 
+ADD setup_passenger.rb /usr/local/bin
+ADD include_modules.rb /usr/local/bin
+
 # NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
 RUN apt-get install -y apache2 apache2-dev
 
@@ -315,6 +315,9 @@ RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VER
 # ARG PASSENGER_DEB_VERSION
 # ARG NGINX_PASSENGER_MODULE_DEB_VERSION
 # WORKDIR /usr/local/build
+
+# ADD setup_passenger.rb /usr/local/bin
+# ADD include_modules.rb /usr/local/bin
 
 # # NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
 # RUN apt-get install -y apache2 apache2-dev
