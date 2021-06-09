@@ -601,30 +601,30 @@ COPY --from=nginx /usr/local/debs /usr/local/debs
 COPY --from=passenger /usr/local/debs /usr/local/debs
 # COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 
-RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}
-RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/prerequisites
-RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/nginx
+RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}
+RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites
+RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}/nginx
 
 RUN mv /usr/local/debs/modsecurity_${MODSECURITY_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-luajit_${LUAJIT2_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-lua-core_${LUA_RESTY_CORE_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-lua-lrucache_${LUA_RESTY_LRUCACHE_DEB_VERSION}_amd64.deb \
-       /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/prerequisites
-RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_amd64.deb /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/nginx
+       /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites
+RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}/nginx
 
-RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
-RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
-RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
-RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
+RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
+RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
+RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
+RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
 
-# RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
-# RUN mkdir -p /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
-# RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
-# RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
+# RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
+# RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
+# RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
+# RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
 
-RUN tar -czf /nginx.tar.gz /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/prerequisites /usr/local/debs/cloud66-nginx-${NGINX_VERSION}/nginx
-RUN tar -czf /passenger.tar.gz /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}
-# RUN tar -czf /passenger-enterprise.tar.gz /usr/local/debs/cloud66-nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}
+RUN tar -czf /nginx.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites /usr/local/debs/nginx-${NGINX_VERSION}/nginx
+RUN tar -czf /passenger.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}
+# RUN tar -czf /passenger-enterprise.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}
 
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test
 ARG NGINX_VERSION
