@@ -1,3 +1,4 @@
+<img src="http://cdn2-cloud66-com.s3.amazonaws.com/images/oss-sponsorship.png" width=150/>
 
 # NGINX compiler
 This project is used to compile a self-contained NGINX that comes with useful modules and generate a deb file for easy installation on Debian based systems.
