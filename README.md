@@ -2,7 +2,7 @@
 # NGINX compiler
 This project is used to compile a self-contained NGINX that comes with useful modules and generate a deb file for easy installation on Debian based systems.
 
-It is used by Cloud 66 to compile the default NGINX + Passenger installation for all servers. It can also be used by Cloud 66 users to generate their own NGINX installation and then upload it to a public location and tell Cloud 66 to install it via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html).
+It is used by Cloud 66 to compile the default NGINX + Passenger installation for all servers. It can also be used by Cloud 66 users to generate their own NGINX installation and then upload it to a public location and tell Cloud 66 to install it via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html#nginx).
 
 ## Requirements
 This project uses Docker to compile NGINX. You must have Docker installed on your host machine for the scripts to work.
@@ -63,7 +63,7 @@ Be sure to purge any traces of previous NGINX or Passenger installations before 
 ## Cloud 66 Integration
 You can use these scripts to compile a version of NGINX for Cloud 66 (for example, with additional modules). Please note that only [tested versions](#tested-versions) are supported for this.
 
-In order to do this, perform the [compilation](#compilation) and [extraction](#extraction) steps on your local machine, and then upload the resulting tarball to a public location (for example, using S3). You can then link to this location via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html), and this will result in your version of NGINX being installed for new servers.
+In order to do this, perform the [compilation](#compilation) and [extraction](#extraction) steps on your local machine, and then upload the resulting tarball to a public location (for example, using S3). You can then link to this location via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html#nginx), and this will result in your version of NGINX being installed for new servers.
 
 Please make sure that the name of the tarball is not changed when uploaded to your public location.
 
