@@ -63,7 +63,9 @@ Be sure to purge any traces of previous NGINX or Passenger installations before 
 ## Cloud 66 Integration
 You can use these scripts to compile a version of NGINX for Cloud 66 (for example, with additional modules). Please note that only [tested versions](#tested-versions) are supported for this.
 
-In order to do this, perform the [compilation](#compilation) and [extraction](#extraction) steps on your local machine, and then upload the resulting tarball to a public location (for example, using S3). You can then link to this location via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html), and your version of NGINX will be installed. Please make sure that the name of the tarball is not changed when uploaded.
+In order to do this, perform the [compilation](#compilation) and [extraction](#extraction) steps on your local machine, and then upload the resulting tarball to a public location (for example, using S3). You can then link to this location via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html), and this will result in your version of NGINX being installed for new servers.
+
+Please make sure that the name of the tarball is not changed when uploaded to your public location.
 
 ## Tested Versions
 ### Operating Systems
