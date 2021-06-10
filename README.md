@@ -5,26 +5,26 @@ This project is used to compile a self-contained NGINX that comes with useful mo
 It is used by Cloud 66 to compile the default NGINX + Passenger installation for all servers. It can also be used by Cloud 66 users to generate their own NGINX installation and then upload it to a public location and tell Cloud 66 to install it via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html).
 
 ## Requirements
-This project uses Docker to compile NGINX using a Dockerfile. You must have Docker installed on your host machine for the scripts to work.
+This project uses Docker to compile NGINX. You must have Docker installed on your host machine for the scripts to work.
 
 ## Compilation
-You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger. For Ubuntu 18.04, NGINX 1.20.1 and Passenger 6.0.9, this is done by running the following:
+You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger versions. For Ubuntu 18.04, NGINX 1.20.1 and Passenger 6.0.9, this is done by running the following:
 ```bash
 ./compile_nginx.sh 18.04 1.20.1 6.0.9
 ```
 
-This will result in a Docker image which will contain with NGINX + Passenger in a tarball.
+This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
 
 ## Extraction
-To extract the tarball, you can run the following (for your combination of Ubuntu + NGINX + Passenger version):
+To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger versions):
 ```
 ./extract_nginx.sh 18.04 1.20.1 6.0.9
 ```
 
 This will place the resulting tarballs in the `output` directory. For the previous extraction example, you will find two files under `output/binaries/ubuntu/18.04/x86_64`: `nginx-1.20.1.tar.gz` and `nginx-1.20.1-passenger-6.0.9.tar.gz`.
 
-## Resulting Tarballs
-The resulting tarballs from the extraction step can be uploaded and installed on the target server as follows:
+## Installation
+The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:
 ```
 tar -C / -zxvf <TARBALL>
 ```
@@ -58,7 +58,9 @@ and Passenger (which depends on this NGINX installation) with the following:
 sudo apt-get install /usr/local/debs/nginx-1.20.1-passenger-6.0.9/**/*.deb
 ```
 
-## Supported Versions
+Be sure to purge any traces of previous NGINX or Passenger installations before attempting this.
+
+## Tested Versions
 ### Operating Systems
 Ubuntu 18.04
 ### NGINX
