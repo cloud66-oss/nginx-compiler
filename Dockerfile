@@ -467,6 +467,7 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 --with-debug \
 --with-pcre-jit \
 --with-compat \
+--with-ipv6 \
 # NOTE: NOT adding --with-openssl flag because then the OpenSSL version is hardcoded as opposed to using what's on the server.
 # With the flag not present, "nginx -V" will show both the version it was built with, and the version it's running with - for example:
 # $ nginx -V 2>&1 | grep OpenSSL
