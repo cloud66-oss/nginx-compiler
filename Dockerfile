@@ -5,6 +5,7 @@ ARG OPERATING_SYSTEM_CODENAME=bionic
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
 ARG PASSENGER_VERSION=6.0.9
+# NOTE: it is conventional to restart RELEASE_VERSION at 1 whenever there is a new version (i.e. NGINX 1.20.1 -> 1.20.2)
 ARG RELEASE_VERSION=1
 
 # NOTE: these are updated as required (build dependencies)
