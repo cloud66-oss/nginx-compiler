@@ -5,7 +5,6 @@ ARG OPERATING_SYSTEM_CODENAME=bionic
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
 ARG PASSENGER_VERSION=6.0.9
-# NOTE: it is conventional to restart RELEASE_VERSION at 1.0.0 whenever there is a new version (i.e. NGINX 1.20.1 -> 1.20.2)
 ARG RELEASE_VERSION=1.0.0
 
 # NOTE: these are updated as required (build dependencies)
@@ -586,6 +585,10 @@ RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-open
 
 FROM base AS prefinal
 
+ARG OPERATING_SYSTEM_VERSION
+ARG NGINX_VERSION
+ARG PASSENGER_VERSION
+ARG RELEASE_VERSION
 ARG MODSECURITY_DEB_VERSION
 ARG LUAJIT2_DEB_VERSION
 ARG LUA_RESTY_CORE_DEB_VERSION
@@ -593,8 +596,6 @@ ARG LUA_RESTY_LRUCACHE_DEB_VERSION
 ARG NGINX_DEB_VERSION
 ARG PASSENGER_DEB_VERSION
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION
-ARG NGINX_VERSION
-ARG PASSENGER_VERSION
 
 COPY --from=modsecurity /usr/local/debs /usr/local/debs
 COPY --from=luajit2 /usr/local/debs /usr/local/debs
@@ -604,30 +605,31 @@ COPY --from=nginx /usr/local/debs /usr/local/debs
 COPY --from=passenger /usr/local/debs /usr/local/debs
 # COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 
-RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}
-RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites
-RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}/nginx
+ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-nginx-${RELEASE_VERSION}"
+ARG OPERATING_SYSTEM_VERSION=18.04
+
+RUN mkdir -p ${DEB_DIRECTORY}
+RUN mkdir -p ${DEB_DIRECTORY}/prerequisites
+RUN mkdir -p ${DEB_DIRECTORY}/nginx
 
 RUN mv /usr/local/debs/modsecurity_${MODSECURITY_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-luajit_${LUAJIT2_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-lua-core_${LUA_RESTY_CORE_DEB_VERSION}_amd64.deb \
        /usr/local/debs/openresty-lua-lrucache_${LUA_RESTY_LRUCACHE_DEB_VERSION}_amd64.deb \
-       /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites
-RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}/nginx
+       ${DEB_DIRECTORY}/prerequisites
+RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/nginx
 
-RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
-RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
-RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger
-RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}/passenger-module
+RUN mkdir -p ${DEB_DIRECTORY}/passenger
+RUN mkdir -p ${DEB_DIRECTORY}/passenger-module
+RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger
+RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-module
 
-# RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
-# RUN mkdir -p /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
-# RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise
-# RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}/passenger-enterprise-module
+# RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise
+# RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise-module
+# RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise
+# RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise-module
 
-RUN tar -czf /nginx.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}/prerequisites /usr/local/debs/nginx-${NGINX_VERSION}/nginx
-RUN tar -czf /passenger.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}-passenger-${PASSENGER_VERSION}
-# RUN tar -czf /passenger-enterprise.tar.gz /usr/local/debs/nginx-${NGINX_VERSION}-passenger-enterprise-${PASSENGER_VERSION}
+RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
 
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test
 ARG NGINX_VERSION
@@ -635,13 +637,11 @@ ARG PASSENGER_VERSION
 
 # NOTE: not testing passenger-enterprise because it requires a valid license
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
-COPY --from=prefinal /passenger.tar.gz /passenger.tar.gz
 
 RUN tar -C / -zxvf nginx.tar.gz
-RUN tar -C / -zxvf passenger.tar.gz
 
 # NOTE: dpkg doesn't respect dependencies if you just give it a list of all packages to install, but apt does
-RUN apt update && apt install -y /usr/local/debs/**/**/*.deb
+RUN apt update && apt install -y /usr/local/debs/**/prerequisites/*.deb /usr/local/debs/**/nginx/*.deb /usr/local/debs/**/passenger/*.deb /usr/local/debs/**/passenger-module/*.deb
 
 # NOTE: curl is a requirement for test_nginx.sh and ruby is a requirement for Passenger
 RUN apt-get update && apt-get install -y curl ruby
