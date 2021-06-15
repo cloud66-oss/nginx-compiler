@@ -358,6 +358,8 @@ RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VER
 FROM base AS nginx
 
 ARG NGINX_VERSION
+ARG PASSENGER_VERSION
+ARG RELEASE_VERSION
 
 ARG OPENSSL_VERSION
 ARG PCRE_VERSION
@@ -550,6 +552,8 @@ RUN ln -s /usr/local/lib/lua/resty /usr/local/share/luajit-${LUAJIT2_VERSION}/re
 
 RUN echo "{ \
   \"NGINX_VERSION\":\"${NGINX_VERSION}\", \
+  \"PASSENGER_VERSION\":\"${PASSENGER_VERSION}\", \
+  \"RELEASE_VERSION\":\"${RELEASE_VERSION}\", \
   \"OPENSSL_VERSION\":\"${OPENSSL_VERSION}\", \
   \"PCRE_VERSION\":\"${PCRE_VERSION}\", \
   \"ZLIB_VERSION\":\"${ZLIB_VERSION}\", \
