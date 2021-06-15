@@ -61,7 +61,7 @@ sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/*.deb /u
 Be sure to purge any traces of previous NGINX or Passenger installations before attempting this.
 
 ## Cloud 66 Integration
-You can use these scripts to compile a version of NGINX for Cloud 66 (for example, with additional modules). Please note that only [tested versions](#tested-versions) are supported for this.
+You can use these scripts to compile a version of NGINX for Cloud 66 (for example, with additional modules, or a different version of Passenger).
 
 In order to do this, perform the [compilation](#compilation) and [extraction](#extraction) steps on your local machine, and then upload the resulting tarball to a public location (for example, using S3). You can then link to this location via the [manifest](https://help.cloud66.com/rails/references/manifest-web-settings.html#nginx), and this will result in your version of NGINX being installed for new servers.
 
