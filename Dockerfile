@@ -5,7 +5,7 @@ ARG OPERATING_SYSTEM_CODENAME=bionic
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
 ARG PASSENGER_VERSION=6.0.9
-ARG RELEASE_VERSION=1.0.0
+ARG RELEASE_VERSION=1.1.0
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.1
@@ -281,10 +281,11 @@ COPY --from=openssl /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 
 # NOTE: directory is called passenger-release-${PASSENGER_VERSION}
+# NOTE: use "/usr/bin/env ruby" as shebang in Passenger executables because it's always available on C66 systems
 RUN wget https://github.com/phusion/passenger/archive/refs/tags/release-${PASSENGER_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/release-${PASSENGER_VERSION}.tar.gz &&\
     cd passenger-release-${PASSENGER_VERSION} &&\
-    rake fakeroot
+    RUBY="/usr/bin/env ruby" rake fakeroot
 
 RUN current_state.sh before
 RUN cp -a passenger-release-${PASSENGER_VERSION}/pkg/fakeroot/* /
