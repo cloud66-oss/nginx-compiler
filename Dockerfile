@@ -5,7 +5,7 @@ ARG OPERATING_SYSTEM_CODENAME=bionic
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
 ARG PASSENGER_VERSION=6.0.9
-ARG RELEASE_VERSION=1.1.0
+ARG RELEASE_VERSION=1.2.0
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.1
@@ -293,21 +293,6 @@ RUN cd passenger-release-${PASSENGER_VERSION} && setup_passenger.rb
 RUN current_state.sh after
 RUN generate_deb.rb passenger ${PASSENGER_DEB_VERSION} binary '{"Suggests":"ruby"}'
 
-RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz &&\
-    cd nginx-${NGINX_VERSION} &&\
-    ./configure \
-        --with-compat \
-        --add-dynamic-module=$(passenger-config --nginx-addon-dir) &&\
-    make modules
-RUN current_state.sh before
-RUN mkdir -p /usr/lib/nginx/modules
-RUN mkdir -p /etc/nginx/modules-enabled
-RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
-RUN include_modules.rb
-RUN current_state.sh after
-RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VERSION} binary "{\"Depends\":\"passenger (= ${PASSENGER_DEB_VERSION}), nginx (= ${NGINX_DEB_VERSION})\"}"
-
 ######################################################################################################################################################################################################################################
 
 # FROM base AS passenger-enterprise
@@ -390,6 +375,8 @@ ARG HTTP_GEOIP2_MODULE_VERSION
 ARG NGX_MRUBY_VERSION
 
 ARG NGINX_DEB_VERSION
+ARG PASSENGER_DEB_VERSION
+ARG NGINX_PASSENGER_MODULE_DEB_VERSION
 
 WORKDIR /usr/local/build
 
@@ -402,7 +389,11 @@ COPY --from=lua-resty-core /usr/local/debs /usr/local/debs
 COPY --from=lua-resty-lrucache /usr/local/debs /usr/local/debs
 COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 COPY --from=libgd /usr/local/debs /usr/local/debs
+COPY --from=passenger /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
+
+ADD setup_passenger.rb /usr/local/bin
+ADD include_modules.rb /usr/local/bin
 
 # NOTE: required to use the new openssl version that is installed in the above debs
 # TODO: when using a custom openssl directory, configuring passenger fails with -lcrypto fails and wasn't able to figure it out just yet (fixing custom include using CPATH worked, unlike with-cc-opt)
@@ -587,6 +578,49 @@ RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
 RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit"}'
+
+# NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
+RUN apt-get install -y apache2 apache2-dev
+
+RUN cd nginx-${NGINX_VERSION} &&\
+    echo '#!/usr/bin/env bash' >> real_passenger_configure &&\
+    echo "./configure \
+        ${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES} \
+        --with-http_ssl_module \
+        --with-http_stub_status_module \
+        --with-http_realip_module \
+        --with-http_auth_request_module \
+        --with-http_v2_module \
+        --with-http_dav_module \
+        --with-http_slice_module \
+        --with-http_addition_module \
+        --with-http_flv_module \
+        --with-http_geoip_module \
+        --with-http_gunzip_module \
+        --with-http_gzip_static_module \
+        --with-http_image_filter_module \
+        --with-http_mp4_module \
+        --with-http_perl_module \
+        --with-http_random_index_module \
+        --with-http_secure_link_module \
+        --with-http_sub_module \
+        --with-http_xslt_module \
+        --with-mail_ssl_module \
+        --with-stream_geoip_module \
+        --with-stream_ssl_module \
+        --with-stream_ssl_preread_module \
+        --add-dynamic-module=$(passenger-config --nginx-addon-dir)" >> real_passenger_configure &&\
+    chmod +x ./real_passenger_configure &&\
+    ./real_passenger_configure &&\
+    make modules
+
+RUN current_state.sh before
+RUN mkdir -p /usr/lib/nginx/modules
+RUN mkdir -p /etc/nginx/modules-enabled
+RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
+RUN include_modules.rb
+RUN current_state.sh after
+RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VERSION} binary "{\"Depends\":\"passenger (= ${PASSENGER_DEB_VERSION}), nginx (= ${NGINX_DEB_VERSION})\"}"
 
 FROM base AS prefinal
 
