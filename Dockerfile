@@ -247,10 +247,13 @@ ARG MODSECURITY_VERSION
 ARG MODSECURITY_DEB_VERSION
 WORKDIR /usr/local/build
 
-# make sure we include libmaxminddb so that modsecurity compiles with GeoLite2 support
+# Make sure we include libmaxminddb so that modsecurity compiles with GeoLite2 support
 COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 RUN rm -rf /usr/local/debs/*.deb
+
+# Make sure to remove any traces of old GeoIP libraries, because if both legacy GeoIP and MaxMind libraries are present, you get this bug: https://github.com/SpiderLabs/ModSecurity/issues/2041
+RUN apt-get purge -y libgeoip-dev
 
 RUN current_state.sh before
 
