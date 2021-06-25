@@ -5,7 +5,7 @@ ARG OPERATING_SYSTEM_CODENAME=bionic
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
 ARG PASSENGER_VERSION=6.0.9
-ARG RELEASE_VERSION=1.2.0
+ARG RELEASE_VERSION=1.2.1
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.1
@@ -166,27 +166,6 @@ RUN generate_deb.rb libgd ${LIBGD_VERSION} binary
 
 ######################################################################################################################################################################################################################################
 
-FROM base AS modsecurity
-ARG MODSECURITY_VERSION
-ARG MODSECURITY_DEB_VERSION
-WORKDIR /usr/local/build
-
-RUN current_state.sh before
-
-# Required for modsecurity-nginx: https://www.nginx.com/blog/compiling-and-installing-modsecurity-for-open-source-nginx/
-RUN wget https://github.com/SpiderLabs/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar zxf /usr/local/sources/modsecurity-v${MODSECURITY_VERSION}.tar.gz &&\
-    cd modsecurity-v${MODSECURITY_VERSION} &&\
-    ./build.sh &&\
-    ./configure &&\
-    make &&\
-    make install
-
-RUN current_state.sh after
-RUN generate_deb.rb modsecurity ${MODSECURITY_DEB_VERSION} binary
-
-######################################################################################################################################################################################################################################
-
 FROM base AS luajit2
 ARG LUAJIT2_PACKAGE_VERSION
 ARG LUAJIT2_DEB_VERSION
@@ -260,6 +239,32 @@ RUN wget https://github.com/maxmind/libmaxminddb/releases/download/${LIBMAXMINDD
 
 RUN current_state.sh after
 RUN generate_deb.rb libmaxminddb ${LIBMAXMINDDB_VERSION} binary
+
+######################################################################################################################################################################################################################################
+
+FROM base AS modsecurity
+ARG MODSECURITY_VERSION
+ARG MODSECURITY_DEB_VERSION
+WORKDIR /usr/local/build
+
+# make sure we include libmaxminddb so that modsecurity compiles with GeoLite2 support
+COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
+RUN dpkg -i /usr/local/debs/*.deb
+RUN rm -rf /usr/local/debs/*.deb
+
+RUN current_state.sh before
+
+# Required for modsecurity-nginx: https://www.nginx.com/blog/compiling-and-installing-modsecurity-for-open-source-nginx/
+RUN wget https://github.com/SpiderLabs/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar zxf /usr/local/sources/modsecurity-v${MODSECURITY_VERSION}.tar.gz &&\
+    cd modsecurity-v${MODSECURITY_VERSION} &&\
+    ./build.sh &&\
+    ./configure --with-maxmind=/usr/local &&\
+    make &&\
+    make install
+
+RUN current_state.sh after
+RUN generate_deb.rb modsecurity ${MODSECURITY_DEB_VERSION} binary
 
 ######################################################################################################################################################################################################################################
 
