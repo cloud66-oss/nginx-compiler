@@ -52,6 +52,8 @@ ARG NGINX_DEB_VERSION="${DEBIAN_EPOCH_PREFIX}${NGINX_VERSION}${DEBIAN_REVISION}"
 ARG PASSENGER_DEB_VERSION="${DEBIAN_EPOCH_PREFIX}${PASSENGER_VERSION}${DEBIAN_REVISION}"
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION="${DEBIAN_EPOCH_PREFIX}${PASSENGER_VERSION}+nginx${NGINX_VERSION}${DEBIAN_REVISION}"
 
+######################################################################################################################################################################################################################################
+
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS base
 ARG AUTOMAKE_VERSION
 WORKDIR /usr/local/build
@@ -672,6 +674,8 @@ RUN include_modules.rb
 RUN current_state.sh after
 RUN generate_deb.rb nginx-module-http-passenger-enterprise ${NGINX_PASSENGER_MODULE_DEB_VERSION} binary "{\"Depends\":\"passenger-enterprise (= ${PASSENGER_DEB_VERSION}), nginx (= ${NGINX_DEB_VERSION})\"}"
 
+######################################################################################################################################################################################################################################
+
 FROM base AS prefinal
 
 ARG OPERATING_SYSTEM_VERSION
@@ -722,6 +726,8 @@ RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_
 
 RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
 
+######################################################################################################################################################################################################################################
+
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
@@ -740,6 +746,8 @@ ADD test_nginx.sh /usr/local/bin
 ADD test_nginx.conf /etc/nginx/nginx.conf
 RUN test_nginx.sh
 RUN touch /tmp/test_successful
+
+######################################################################################################################################################################################################################################
 
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger-enterprise
 ARG NGINX_VERSION
@@ -761,6 +769,8 @@ ADD test_nginx.sh /usr/local/bin
 ADD test_nginx.conf /etc/nginx/nginx.conf
 RUN test_nginx.sh
 RUN touch /tmp/test_successful
+
+######################################################################################################################################################################################################################################
 
 FROM prefinal AS final
 # NOTE: make test as dependency before this final image builds
