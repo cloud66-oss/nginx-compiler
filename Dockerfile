@@ -572,14 +572,11 @@ ARG NGINX_DEB_VERSION
 ARG PASSENGER_DEB_VERSION
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION
 
+ADD include_modules.rb /usr/local/bin
+
 RUN rm -rf /usr/local/debs/*.deb
 COPY --from=passenger /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
-
-ADD include_modules.rb /usr/local/bin
-
-# NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
-RUN apt-get install -y apache2 apache2-dev
 
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_passenger_configure &&\
