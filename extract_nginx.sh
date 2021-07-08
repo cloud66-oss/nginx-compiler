@@ -16,3 +16,8 @@ fi
 output="output/binaries"
 mkdir -p $output
 docker run --rm --entrypoint cat cloud66-nginx:ubuntu-${1}-nginx-${2}-passenger-${3}-release-${4} /nginx.tar.gz > ${output}/ubuntu-${1}-nginx-${4}.tar.gz
+PASSENGER_ENTERPRISE_LICENSE="passenger_enterprise/passenger-enterprise-license"
+PASSENGER_ENTERPRISE_TARBALL="passenger_enterprise/passenger-enterprise-server-${3}.tar.gz"
+if [[ -f "${PASSENGER_ENTERPRISE_LICENSE}" ]] && [[ -f "${PASSENGER_ENTERPRISE_TARBALL}" ]]; then
+    docker run --rm --entrypoint cat cloud66-nginx:ubuntu-${1}-nginx-${2}-passenger-${3}-release-${4} /passenger-enterprise.tar.gz > ${output}/ubuntu-${1}-passenger-enterprise-${4}.tar.gz
+fi

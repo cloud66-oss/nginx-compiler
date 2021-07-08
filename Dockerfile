@@ -1,6 +1,7 @@
 # NOTE: these MUST be provided
 ARG OPERATING_SYSTEM_VERSION=18.04
 ARG OPERATING_SYSTEM_CODENAME=bionic
+ARG INCLUDE_PASSENGER_ENTERPRISE=false
 
 # NOTE: these are recommended to be provided
 ARG NGINX_VERSION=1.20.1
@@ -304,7 +305,7 @@ RUN generate_deb.rb passenger ${PASSENGER_DEB_VERSION} binary '{"Suggests":"ruby
 
 ######################################################################################################################################################################################################################################
 
-FROM base AS passenger-enterprise
+FROM base AS passenger-enterprise-true
 ARG PASSENGER_VERSION
 ARG NGINX_VERSION
 ARG NGINX_DEB_VERSION
@@ -331,6 +332,10 @@ RUN cp -a passenger-enterprise-server-${PASSENGER_VERSION}/pkg/fakeroot/* /
 RUN cd passenger-enterprise-server-${PASSENGER_VERSION} && setup_passenger.rb
 RUN current_state.sh after
 RUN generate_deb.rb passenger-enterprise ${PASSENGER_DEB_VERSION} binary '{"Suggests":"ruby"}'
+
+FROM base AS passenger-enterprise-false
+
+FROM passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS passenger-enterprise
 
 ######################################################################################################################################################################################################################################
 
@@ -622,7 +627,7 @@ RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VER
 
 ######################################################################################################################################################################################################################################
 
-FROM nginx AS nginx-passenger-enterprise
+FROM nginx AS nginx-passenger-enterprise-true
 
 ARG NGINX_DEB_VERSION
 ARG PASSENGER_DEB_VERSION
@@ -674,6 +679,10 @@ RUN include_modules.rb
 RUN current_state.sh after
 RUN generate_deb.rb nginx-module-http-passenger-enterprise ${NGINX_PASSENGER_MODULE_DEB_VERSION} binary "{\"Depends\":\"passenger-enterprise (= ${PASSENGER_DEB_VERSION}), nginx (= ${NGINX_DEB_VERSION})\"}"
 
+FROM nginx AS nginx-passenger-enterprise-false
+
+FROM nginx-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS nginx-passenger-enterprise
+
 ######################################################################################################################################################################################################################################
 
 FROM base AS prefinal
@@ -696,12 +705,9 @@ COPY --from=lua-resty-core /usr/local/debs /usr/local/debs
 COPY --from=lua-resty-lrucache /usr/local/debs /usr/local/debs
 COPY --from=nginx /usr/local/debs /usr/local/debs
 COPY --from=nginx-passenger /usr/local/debs /usr/local/debs
-COPY --from=nginx-passenger-enterprise /usr/local/debs /usr/local/debs
 COPY --from=passenger /usr/local/debs /usr/local/debs
-COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 
 ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-nginx-${RELEASE_VERSION}"
-ARG OPERATING_SYSTEM_VERSION=18.04
 
 RUN mkdir -p ${DEB_DIRECTORY}
 RUN mkdir -p ${DEB_DIRECTORY}/prerequisites
@@ -719,12 +725,32 @@ RUN mkdir -p ${DEB_DIRECTORY}/passenger-module
 RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger
 RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-module
 
+RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
+
+######################################################################################################################################################################################################################################
+
+FROM base AS prefinal-passenger-enterprise-true
+
+ARG OPERATING_SYSTEM_VERSION
+ARG RELEASE_VERSION
+ARG PASSENGER_DEB_VERSION
+ARG NGINX_PASSENGER_MODULE_DEB_VERSION
+
+COPY --from=nginx-passenger-enterprise /usr/local/debs /usr/local/debs
+COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
+
+ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-nginx-${RELEASE_VERSION}"
+
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise-module
 RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise
 RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise-module
 
-RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
+RUN tar -czf /passenger-enterprise.tar.gz ${DEB_DIRECTORY}
+
+FROM base AS prefinal-passenger-enterprise-false
+
+FROM prefinal-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS prefinal-passenger-enterprise
 
 ######################################################################################################################################################################################################################################
 
@@ -749,13 +775,15 @@ RUN touch /tmp/test_successful
 
 ######################################################################################################################################################################################################################################
 
-FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger-enterprise
+FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger-enterprise-true
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
 
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
+COPY --from=prefinal-passenger-enterprise /passenger-enterprise.tar.gz /passenger-enterprise.tar.gz
 
 RUN tar -C / -zxvf nginx.tar.gz
+RUN tar -C / -zxvf passenger-enterprise.tar.gz
 
 ADD passenger_enterprise/passenger-enterprise-license /etc/passenger-enterprise-license
 
@@ -770,9 +798,21 @@ ADD test_nginx.conf /etc/nginx/nginx.conf
 RUN test_nginx.sh
 RUN touch /tmp/test_successful
 
+FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger-enterprise-false
+
+FROM test-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS test-passenger-enterprise
+
 ######################################################################################################################################################################################################################################
 
-FROM prefinal AS final
+FROM ubuntu:$OPERATING_SYSTEM_VERSION AS final-true
+COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
+COPY --from=prefinal-passenger-enterprise /passenger-enterprise.tar.gz /passenger-enterprise.tar.gz
 # NOTE: make test as dependency before this final image builds
 COPY --from=test-passenger /tmp/test_successful /tmp/test_successful
 COPY --from=test-passenger-enterprise /tmp/test_successful /tmp/test_successful
+
+FROM ubuntu:$OPERATING_SYSTEM_VERSION AS final-false
+COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
+COPY --from=test-passenger /tmp/test_successful /tmp/test_successful
+
+FROM final-${INCLUDE_PASSENGER_ENTERPRISE} AS final
