@@ -16,6 +16,9 @@ You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger +
 
 This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
 
+### Passenger Enterprise
+You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal.
+
 ## Extraction
 To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions):
 ```
@@ -24,10 +27,13 @@ To extract the tarballs from the Docker image, you can run the following (for yo
 
 This will place the resulting tarballs in the `output` directory. For the previous extraction example, you will find one file under `output/binaries`: `ubuntu-18.04-nginx-1.0.0.tar.gz`.
 
+### Passenger Enterprise
+If you have also compiled Passenger Enterprise, then there will be an additional file in the `output/binaries` directory: `ubuntu-18.04-passenger-enterprise-1.0.0.tar.gz`.
+
 ## Installation
 The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:
 ```
-tar -C / -zxvf <TARBALL>
+tar -C / -zxvf <TARBALL(S)>
 ```
 
 Doing this for the NGINX and Passenger tarballs will result in the following files under `/usr/local/debs`:
@@ -56,6 +62,11 @@ sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/*.de
 and Passenger (which depends on this NGINX installation) with the following:
 ```
 sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/*.deb
+```
+
+For Passenger Enterprise, you will also have the `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise` and `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module` directories, which you can install instead of the standard Passenger installation as follows:
+```
+sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module/*.deb
 ```
 
 Be sure to purge any traces of previous NGINX or Passenger installations before attempting this.
