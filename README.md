@@ -16,6 +16,9 @@ You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger +
 
 This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
 
+### Passenger Enterprise
+You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal.
+
 ## Extraction
 To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions):
 ```
@@ -56,6 +59,11 @@ sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/*.de
 and Passenger (which depends on this NGINX installation) with the following:
 ```
 sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/*.deb
+```
+
+For Passenger Enterprise, you will also have the `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise` and `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module` directories, which you can install instead of the standard Passenger installation as follows:
+```
+sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module/*.deb
 ```
 
 Be sure to purge any traces of previous NGINX or Passenger installations before attempting this.
