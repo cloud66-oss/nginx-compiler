@@ -27,13 +27,10 @@ To extract the tarballs from the Docker image, you can run the following (for yo
 
 This will place the resulting tarballs in the `output` directory. For the previous extraction example, you will find one file under `output/binaries`: `ubuntu-18.04-nginx-1.0.0.tar.gz`.
 
-### Passenger Enterprise
-If you have also compiled Passenger Enterprise, then there will be an additional file in the `output/binaries` directory: `ubuntu-18.04-passenger-enterprise-1.0.0.tar.gz`.
-
 ## Installation
 The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:
 ```
-tar -C / -zxvf <TARBALL(S)>
+tar -C / -zxvf <TARBALL>
 ```
 
 Doing this for the NGINX and Passenger tarballs will result in the following files under `/usr/local/debs`:

@@ -685,7 +685,7 @@ FROM nginx-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS nginx-passeng
 
 ######################################################################################################################################################################################################################################
 
-FROM base AS prefinal
+FROM base AS prefinal-base
 
 ARG OPERATING_SYSTEM_VERSION
 ARG NGINX_VERSION
@@ -725,32 +725,22 @@ RUN mkdir -p ${DEB_DIRECTORY}/passenger-module
 RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger
 RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-module
 
-RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
-
 ######################################################################################################################################################################################################################################
 
-FROM base AS prefinal-passenger-enterprise-true
-
-ARG OPERATING_SYSTEM_VERSION
-ARG RELEASE_VERSION
-ARG PASSENGER_DEB_VERSION
-ARG NGINX_PASSENGER_MODULE_DEB_VERSION
+FROM prefinal-base AS prefinal-passenger-enterprise-true
 
 COPY --from=nginx-passenger-enterprise /usr/local/debs /usr/local/debs
 COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
-
-ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-nginx-${RELEASE_VERSION}"
 
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise-module
 RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise
 RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise-module
 
-RUN tar -czf /passenger-enterprise.tar.gz ${DEB_DIRECTORY}
+FROM prefinal-base AS prefinal-passenger-enterprise-false
 
-FROM base AS prefinal-passenger-enterprise-false
-
-FROM prefinal-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS prefinal-passenger-enterprise
+FROM prefinal-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS prefinal
+RUN tar -czf /nginx.tar.gz ${DEB_DIRECTORY}
 
 ######################################################################################################################################################################################################################################
 
@@ -780,10 +770,8 @@ ARG NGINX_VERSION
 ARG PASSENGER_VERSION
 
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
-COPY --from=prefinal-passenger-enterprise /passenger-enterprise.tar.gz /passenger-enterprise.tar.gz
 
 RUN tar -C / -zxvf nginx.tar.gz
-RUN tar -C / -zxvf passenger-enterprise.tar.gz
 
 ADD passenger_enterprise/passenger-enterprise-license /etc/passenger-enterprise-license
 
@@ -806,13 +794,13 @@ FROM test-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS test-passenger
 
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS final-true
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
-COPY --from=prefinal-passenger-enterprise /passenger-enterprise.tar.gz /passenger-enterprise.tar.gz
 # NOTE: make test as dependency before this final image builds
 COPY --from=test-passenger /tmp/test_successful /tmp/test_successful
 COPY --from=test-passenger-enterprise /tmp/test_successful /tmp/test_successful
 
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS final-false
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
+# NOTE: make test as dependency before this final image builds
 COPY --from=test-passenger /tmp/test_successful /tmp/test_successful
 
 FROM final-${INCLUDE_PASSENGER_ENTERPRISE} AS final
