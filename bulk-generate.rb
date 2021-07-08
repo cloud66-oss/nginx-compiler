@@ -12,6 +12,7 @@ def build_and_extract(os_version, nginx_version, passenger_version, release_vers
   expected_filenames = [
     "#{Dir.pwd}/output/binaries/ubuntu-#{os_version}-nginx-#{release_version}.tar.gz",
   ]
+  expected_filenames << "#{Dir.pwd}/output/binaries/ubuntu-#{os_version}-passenger-enterprise-#{release_version}.tar.gz" if include_passenger_enterprise?(passenger_version)
   if expected_filenames.all? { |expected_filename| File.exist?(expected_filename) }
     puts "  #{DateTime.now} - DONE"
   else
@@ -23,6 +24,10 @@ def build_and_extract(os_version, nginx_version, passenger_version, release_vers
     raise "Failed to extract [OS:#{os_version}] [NGINX:#{nginx_version}] [PASSENGER:#{passenger_version}] [RELEASE:#{release_version}]" unless success
     puts "  #{DateTime.now} - DONE"
   end
+end
+
+def include_passenger_enterprise?(passenger_version)
+  return File.exist?("passenger_enterprise/passenger-enterprise-license") && File.exist?("passenger_enterprise/passenger-enterprise-server-#{passenger_version}.tar.gz")
 end
 
 puts "#{DateTime.now} - STARTING"
