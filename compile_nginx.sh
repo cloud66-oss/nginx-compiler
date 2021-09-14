@@ -17,6 +17,9 @@ case $1 in
     18.04)
 	OPERATING_SYSTEM_CODENAME=bionic
 	;;
+    20.04)
+	OPERATING_SYSTEM_CODENAME=focal
+	;;
     *)
 	echo "Unknown operating system"
 	exit 1
