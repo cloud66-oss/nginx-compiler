@@ -96,7 +96,7 @@ RUN current_state.sh before
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
 RUN tar -zxf /usr/local/sources/openssl-${OPENSSL_VERSION}.tar.gz &&\
     cd openssl-${OPENSSL_VERSION} &&\
-    ./config --prefix=/usr --openssldir=/usr shared zlib &&\
+    ./config --libdir=/usr/lib --prefix=/usr --openssldir=/usr shared zlib &&\
     make &&\
     make install
 
