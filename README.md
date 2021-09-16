@@ -9,9 +9,9 @@ It is used by Cloud 66 to compile the default NGINX + Passenger installation for
 This project uses Docker to compile NGINX. You must have Docker installed on your host machine for the scripts to work.
 
 ## Compilation
-You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger + release versions. The release version is used to cover dependencies that are not covered by the other versions, e.g. build dependency/NGINX module update. For Ubuntu 18.04, NGINX 1.20.1, Passenger 6.0.9 and release 1.0.0, this is done by running the following:
+You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger + release versions. The release version is used to cover dependencies that are not covered by the other versions, e.g. build dependency/NGINX module update. For Ubuntu 18.04, NGINX 1.20.1, Passenger 6.0.10 and release 1.0.0, this is done by running the following:
 ```bash
-./compile_nginx.sh 18.04 1.20.1 6.0.9 1.0.0
+./compile_nginx.sh 18.04 1.20.1 6.0.10 1.0.0
 ```
 
 This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
@@ -22,7 +22,7 @@ You can optionally compile Passenger Enterprise. To do this, you must have both 
 ## Extraction
 To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions):
 ```
-./extract_nginx.sh 18.04 1.20.1 6.0.9 1.0.0
+./extract_nginx.sh 18.04 1.20.1 6.0.10 1.0.0
 ```
 
 This will place the resulting tarballs in the `output` directory. For the previous extraction example, you will find one file under `output/binaries`: `ubuntu-18.04-nginx-1.0.0.tar.gz`.
@@ -39,7 +39,7 @@ $ find /usr/local/debs/
 /usr/local/debs/
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/nginx-module-http-passenger_6.0.9+nginx1.20.1-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/nginx-module-http-passenger_6.0.10+nginx1.20.1-1.0.0~bionic1_amd64.deb
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/nginx
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/nginx/nginx_1.20.1-1.0.0~bionic1_amd64.deb
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites
@@ -48,7 +48,7 @@ $ find /usr/local/debs/
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/openresty-luajit_2.1-20210510-1.0.0~bionic1_amd64.deb
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/openresty-lua-core_0.1.21-1.0.0~bionic1_amd64.deb
 /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/passenger_6.0.9-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/passenger_6.0.10-1.0.0~bionic1_amd64.deb
 ```
 
 You can then install NGINX with the following:
