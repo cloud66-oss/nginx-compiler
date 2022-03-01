@@ -30,7 +30,7 @@ This will place the resulting tarballs in the `output` directory. For the previo
 ## Installation
 The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:
 ```
-tar -C / -zxvf <TARBALL>
+tar -C / -zxvf --no-same-owner <TARBALL>
 ```
 
 Doing this for the NGINX and Passenger tarballs will result in the following files under `/usr/local/debs`:
