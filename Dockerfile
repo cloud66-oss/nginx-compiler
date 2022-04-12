@@ -117,7 +117,7 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://ftp.pcre.org/pub/pcre/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar -zxf /usr/local/sources/pcre-${PCRE_VERSION}.tar.gz &&\
     cd pcre-${PCRE_VERSION} &&\
     ./configure &&\
@@ -137,8 +137,8 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar -zxf /usr/local/sources/zlib-${ZLIB_VERSION}.tar.gz &&\
+RUN wget https://github.com/madler/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar -zxf /usr/local/sources/v${ZLIB_VERSION}.tar.gz &&\
     cd zlib-${ZLIB_VERSION} &&\
     ./configure &&\
     make &&\
@@ -496,7 +496,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -603,7 +603,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -657,7 +657,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
