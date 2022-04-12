@@ -387,6 +387,8 @@ COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 COPY --from=libgd /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 
+ADD include_modules.rb /usr/local/bin
+
 # NOTE: required to use the new openssl version that is installed in the above debs
 # TODO: when using a custom openssl directory, configuring passenger fails with -lcrypto fails and wasn't able to figure it out just yet (fixing custom include using CPATH worked, unlike with-cc-opt)
 # ENV PATH="${PATH}:/usr/local/ssl/bin"
@@ -565,6 +567,10 @@ RUN echo "{ \
   \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\" \
 }" >> /etc/nginx/compilation-configuration.json
 
+RUN mkdir -p /usr/lib/nginx/modules
+RUN mkdir -p /etc/nginx/modules-enabled
+RUN include_modules.rb
+
 RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
@@ -584,6 +590,9 @@ ADD include_modules.rb /usr/local/bin
 RUN rm -rf /usr/local/debs/*.deb
 COPY --from=passenger /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
+
+# make sure to clean any existing modules
+RUN rm -rf /usr/lib/nginx/modules/*
 
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_passenger_configure &&\
@@ -618,8 +627,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
     make modules
 
 RUN current_state.sh before
-RUN mkdir -p /usr/lib/nginx/modules
-RUN mkdir -p /etc/nginx/modules-enabled
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
 RUN include_modules.rb
 RUN current_state.sh after
@@ -638,6 +645,9 @@ ADD include_modules.rb /usr/local/bin
 RUN rm -rf /usr/local/debs/*.deb
 COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
+
+# make sure to clean any existing modules
+RUN rm -rf /usr/lib/nginx/modules/*
 
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_passenger_enterprise_configure &&\
@@ -672,8 +682,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
     make modules
 
 RUN current_state.sh before
-RUN mkdir -p /usr/lib/nginx/modules
-RUN mkdir -p /etc/nginx/modules-enabled
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
 RUN include_modules.rb
 RUN current_state.sh after
