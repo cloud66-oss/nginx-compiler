@@ -341,7 +341,6 @@ FROM passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS passenger-enterpris
 
 FROM base AS nginx
 
-ARG OPERATING_SYSTEM_VERSION
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
 ARG RELEASE_VERSION
@@ -497,7 +496,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi) \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -576,7 +575,6 @@ RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-open
 
 FROM nginx AS nginx-passenger
 
-ARG OPERATING_SYSTEM_VERSION
 ARG NGINX_DEB_VERSION
 ARG PASSENGER_DEB_VERSION
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION
@@ -605,7 +603,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi) \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -631,7 +629,6 @@ RUN generate_deb.rb nginx-module-http-passenger ${NGINX_PASSENGER_MODULE_DEB_VER
 
 FROM nginx AS nginx-passenger-enterprise-true
 
-ARG OPERATING_SYSTEM_VERSION
 ARG NGINX_DEB_VERSION
 ARG PASSENGER_DEB_VERSION
 ARG NGINX_PASSENGER_MODULE_DEB_VERSION
@@ -660,7 +657,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi) \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
