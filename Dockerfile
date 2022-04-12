@@ -496,7 +496,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        # --with-http_perl_module \
+        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi)
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -603,7 +603,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        # --with-http_perl_module \
+        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi)
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -657,7 +657,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        # --with-http_perl_module \
+        $(if [ $OPERATING_SYSTEM_VERSION != '20.04' ]; then echo '--with-http_perl_module'; fi)
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
