@@ -21,6 +21,7 @@ ARG LUAJIT2_SHORT_VERSION=2.1
 ARG LUA_RESTY_CORE_VERSION=0.1.22
 ARG LUA_RESTY_LRUCACHE_VERSION=0.11
 ARG LIBMAXMINDDB_VERSION=1.6.0
+ARG LIBPERL_VERSION=5.34.1
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.2
@@ -68,7 +69,7 @@ RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-add-repository ppa:brightbox/ruby-ng &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-dev ruby2.7 ruby2.7-dev vim wget zlib1g-dev 
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-dev ruby2.7 ruby2.7-dev vim wget zlib1g-dev 
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -117,7 +118,7 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://ftp.pcre.org/pub/pcre/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar -zxf /usr/local/sources/pcre-${PCRE_VERSION}.tar.gz &&\
     cd pcre-${PCRE_VERSION} &&\
     ./configure &&\
@@ -137,8 +138,8 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar -zxf /usr/local/sources/zlib-${ZLIB_VERSION}.tar.gz &&\
+RUN wget https://github.com/madler/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar -zxf /usr/local/sources/v${ZLIB_VERSION}.tar.gz &&\
     cd zlib-${ZLIB_VERSION} &&\
     ./configure &&\
     make &&\
@@ -242,6 +243,27 @@ RUN wget https://github.com/maxmind/libmaxminddb/releases/download/${LIBMAXMINDD
 
 RUN current_state.sh after
 RUN generate_deb.rb libmaxminddb ${LIBMAXMINDDB_VERSION} binary
+
+######################################################################################################################################################################################################################################
+
+FROM base AS libperl
+ARG LIBPERL_VERSION
+WORKDIR /usr/local/build
+
+RUN current_state.sh before
+
+# Required for NGINX perl module
+RUN wget https://www.cpan.org/src/5.0/perl-${LIBPERL_VERSION}.tar.gz  -P /usr/local/sources &&\
+    tar -zxf /usr/local/sources/perl-${LIBPERL_VERSION}.tar.gz &&\
+    cd perl-${LIBPERL_VERSION} &&\
+    ./Configure -des -Dprefix=/usr/local -Dusethreads &&\
+    make &&\
+    # make test &&\
+    make install
+
+RUN current_state.sh after
+RUN generate_deb.rb perl ${LIBPERL_VERSION} binary
+RUN generate_deb.rb perl ${LIBPERL_VERSION} source
 
 ######################################################################################################################################################################################################################################
 
@@ -379,6 +401,7 @@ WORKDIR /usr/local/build
 COPY --from=openssl /usr/local/debs /usr/local/debs
 COPY --from=pcre /usr/local/debs /usr/local/debs
 COPY --from=zlib /usr/local/debs /usr/local/debs
+COPY --from=libperl /usr/local/debs /usr/local/debs
 COPY --from=modsecurity /usr/local/debs /usr/local/debs
 COPY --from=luajit2 /usr/local/debs /usr/local/debs
 COPY --from=lua-resty-core /usr/local/debs /usr/local/debs
