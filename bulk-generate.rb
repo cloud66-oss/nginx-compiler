@@ -3,8 +3,8 @@ require 'date'
 RELEASE_VERSION = ARGV[0]
 #OS_VERSIONS = %w(18.04)
 OS_VERSIONS = %w(18.04 20.04)
-NGINX_VERSIONS = %w(1.20.1)
-PASSENGER_VERSIONS = %w(6.0.10)
+NGINX_VERSIONS = %w(1.22.0)
+PASSENGER_VERSIONS = %w(6.0.14)
 
 raise "Must provide release number as first argument" if RELEASE_VERSION.nil?
 

@@ -31,14 +31,14 @@ ARG DAV_EXT_MODULE_VERSION=3.0.0
 ARG DEVEL_KIT_MODULE_VERSION=0.3.1
 ARG ECHO_MODULE_VERSION=0.62
 ARG FANCYINDEX_MODULE_VERSION=0.5.1
-ARG NCHAN_MODULE_VERSION=1.2.10
+ARG NCHAN_MODULE_VERSION=1.3.1
 ARG LUA_MODULE_VERSION=0.10.20
 ARG RTMP_MODULE_VERSION=1.2.2
 ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.3
-ARG NGX_MRUBY_VERSION=2.2.3
+ARG NGX_MRUBY_VERSION=2.2.4
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -476,7 +476,7 @@ RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
     ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' --with-openssl-src=/usr/local/build/openssl-${OPENSSL_VERSION} &&\
     make build_mruby &&\
-    make generate_gems_config_dynamic
+    make generate_gems_config
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
 # NOTE: couldn't think of a way to substitute NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES without echoing it to a file - everything else I tried ended up removing some characters (e.g. quotes)
@@ -507,6 +507,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-stream_geoip_module \
         --with-stream_ssl_module \
         --with-stream_ssl_preread_module \
+        --add-dynamic-module=/usr/local/build/nchan-${NCHAN_MODULE_VERSION} \
         --add-module=/usr/local/build/headers-more-nginx-module-${HEADERS_MORE_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_auth_pam_module-${HTTP_AUTH_PAM_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_cache_purge-${CACHE_PURGE_MODULE_VERSION} \
@@ -514,7 +515,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx_devel_kit-${DEVEL_KIT_MODULE_VERSION} \
         --add-module=/usr/local/build/echo-nginx-module-${ECHO_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx-fancyindex-${FANCYINDEX_MODULE_VERSION} \
-        --add-module=/usr/local/build/nchan-${NCHAN_MODULE_VERSION} \
         --add-module=/usr/local/build/lua-nginx-module-${LUA_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-rtmp-module-${RTMP_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
