@@ -7,10 +7,10 @@ ARG INCLUDE_PASSENGER_ENTERPRISE=*passed-in*
 ARG NGINX_VERSION=*passed-in*
 ARG PASSENGER_VERSION=*passed-in*
 ARG RELEASE_VERSION=*passed-in*
+ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.4
-ARG OPENSSL_VERSION=1.1.1l
 ARG PCRE_VERSION=8.45
 ARG ZLIB_VERSION=1.2.11
 ARG LIBGD_VERSION=2.3.3
@@ -66,9 +66,8 @@ RUN mkdir -p /usr/local/debs
 
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
-    apt-add-repository ppa:brightbox/ruby-ng &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-dev ruby2.7 ruby2.7-dev vim wget zlib1g-dev 
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev 
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -455,11 +454,7 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 --with-pcre-jit \
 --with-compat \
 --with-ipv6 \
-# NOTE: NOT adding --with-openssl flag because then the OpenSSL version is hardcoded as opposed to using what's on the server.
-# With the flag not present, "nginx -V" will show both the version it was built with, and the version it's running with - for example:
-# $ nginx -V 2>&1 | grep OpenSSL
-# built with OpenSSL 1.1.1g  21 Apr 2020 (running with OpenSSL 1.1.1  11 Sep 2018)
-# --with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
+--with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
 --with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
 --with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
 --with-threads \

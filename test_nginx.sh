@@ -4,6 +4,9 @@ set -e
 echo "Checking NGINX version"
 nginx -V
 
+echo "Ensuring that OpenSSL is dynamically linked"
+ldd $(which nginx) | grep libssl
+
 echo "Testing NGINX configuration"
 nginx -t
 
