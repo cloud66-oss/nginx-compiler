@@ -7,10 +7,10 @@ ARG INCLUDE_PASSENGER_ENTERPRISE=*passed-in*
 ARG NGINX_VERSION=*passed-in*
 ARG PASSENGER_VERSION=*passed-in*
 ARG RELEASE_VERSION=*passed-in*
+ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.4
-ARG OPENSSL_VERSION=1.1.1l
 ARG PCRE_VERSION=8.45
 ARG ZLIB_VERSION=1.2.11
 ARG LIBGD_VERSION=2.3.3
@@ -66,9 +66,8 @@ RUN mkdir -p /usr/local/debs
 
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
-    apt-add-repository ppa:brightbox/ruby-ng &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-dev ruby2.7 ruby2.7-dev vim wget zlib1g-dev 
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev 
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -474,7 +473,7 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/
 RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
-    ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' --with-openssl-src=/usr/local/build/openssl-${OPENSSL_VERSION} &&\
+    ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' &&\
     make build_mruby &&\
     make generate_gems_config
 
