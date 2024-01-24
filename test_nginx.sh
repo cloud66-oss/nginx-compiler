@@ -4,6 +4,14 @@ set -e
 echo "Checking NGINX version"
 nginx -V
 
+# this test may fail if the system OpenSSL is the same as the OpenSSL that NGINX was built with but it's very unlikely to happen
+echo "Testing NGINX is using system OpenSSL"
+nginx -V 2>&1 | grep "running with OpenSSL"
+
+# this test is not foolproof - I previously accidentally statically compiled NGINX and something was still using libssl from the system
+echo "Ensuring that OpenSSL is dynamically linked"
+ldd $(which nginx) | grep libssl
+
 echo "Testing NGINX configuration"
 nginx -t
 

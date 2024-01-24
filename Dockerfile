@@ -1,44 +1,44 @@
 # NOTE: these MUST be provided
-ARG OPERATING_SYSTEM_VERSION=18.04
-ARG OPERATING_SYSTEM_CODENAME=bionic
-ARG INCLUDE_PASSENGER_ENTERPRISE=false
+ARG OPERATING_SYSTEM_VERSION=*passed-in*
+ARG OPERATING_SYSTEM_CODENAME=*passed-in*
+ARG INCLUDE_PASSENGER_ENTERPRISE=*passed-in*
 
 # NOTE: these are recommended to be provided
-ARG NGINX_VERSION=1.20.1
-ARG PASSENGER_VERSION=6.0.9
-ARG RELEASE_VERSION=1.3.0
+ARG NGINX_VERSION=*passed-in*
+ARG PASSENGER_VERSION=*passed-in*
+ARG RELEASE_VERSION=*passed-in*
+ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
-ARG AUTOMAKE_VERSION=1.16.1
-ARG OPENSSL_VERSION=1.1.1k
-ARG PCRE_VERSION=8.44
+ARG AUTOMAKE_VERSION=1.16.4
+ARG PCRE_VERSION=8.45
 ARG ZLIB_VERSION=1.2.11
-ARG LIBGD_VERSION=2.3.2
-ARG MODSECURITY_VERSION=3.0.4
+ARG LIBGD_VERSION=2.3.3
+ARG MODSECURITY_VERSION=3.0.5
 ARG LUAJIT2_VERSION=2.1.0-beta3
 ARG LUAJIT2_PACKAGE_VERSION=2.1-20210510
 ARG LUAJIT2_SHORT_VERSION=2.1
-ARG LUA_RESTY_CORE_VERSION=0.1.21
-ARG LUA_RESTY_LRUCACHE_VERSION=0.10
+ARG LUA_RESTY_CORE_VERSION=0.1.22
+ARG LUA_RESTY_LRUCACHE_VERSION=0.11
 ARG LIBMAXMINDDB_VERSION=1.6.0
 
 # NOTE: these are updated as required (NGINX modules)
-ARG MODSECURITY_MODULE_VERSION=1.0.1
+ARG MODSECURITY_MODULE_VERSION=1.0.2
 ARG HEADERS_MORE_MODULE_VERSION=0.33
-ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.2
+ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.3
 ARG CACHE_PURGE_MODULE_VERSION=2.4.3
 ARG DAV_EXT_MODULE_VERSION=3.0.0
 ARG DEVEL_KIT_MODULE_VERSION=0.3.1
 ARG ECHO_MODULE_VERSION=0.62
 ARG FANCYINDEX_MODULE_VERSION=0.5.1
-ARG NCHAN_MODULE_VERSION=1.2.8
-ARG LUA_MODULE_VERSION=0.10.19
-ARG RTMP_MODULE_VERSION=1.2.1
+ARG NCHAN_MODULE_VERSION=1.3.1
+ARG LUA_MODULE_VERSION=0.10.20
+ARG RTMP_MODULE_VERSION=1.2.2
 ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.3
-ARG NGX_MRUBY_VERSION=2.2.3
+ARG NGX_MRUBY_VERSION=2.2.4
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -66,9 +66,8 @@ RUN mkdir -p /usr/local/debs
 
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
-    apt-add-repository ppa:brightbox/ruby-ng &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-dev ruby2.7 ruby2.7-dev vim wget zlib1g-dev 
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev 
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -96,7 +95,7 @@ RUN current_state.sh before
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
 RUN tar -zxf /usr/local/sources/openssl-${OPENSSL_VERSION}.tar.gz &&\
     cd openssl-${OPENSSL_VERSION} &&\
-    ./config --prefix=/usr --openssldir=/usr shared zlib &&\
+    ./config --libdir=/usr/lib --prefix=/usr --openssldir=/usr shared zlib &&\
     make &&\
     make install
 
@@ -117,7 +116,7 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://ftp.pcre.org/pub/pcre/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar -zxf /usr/local/sources/pcre-${PCRE_VERSION}.tar.gz &&\
     cd pcre-${PCRE_VERSION} &&\
     ./configure &&\
@@ -137,8 +136,8 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar -zxf /usr/local/sources/zlib-${ZLIB_VERSION}.tar.gz &&\
+RUN wget https://github.com/madler/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar -zxf /usr/local/sources/v${ZLIB_VERSION}.tar.gz &&\
     cd zlib-${ZLIB_VERSION} &&\
     ./configure &&\
     make &&\
@@ -387,6 +386,8 @@ COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 COPY --from=libgd /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 
+ADD include_modules.rb /usr/local/bin
+
 # NOTE: required to use the new openssl version that is installed in the above debs
 # TODO: when using a custom openssl directory, configuring passenger fails with -lcrypto fails and wasn't able to figure it out just yet (fixing custom include using CPATH worked, unlike with-cc-opt)
 # ENV PATH="${PATH}:/usr/local/ssl/bin"
@@ -472,9 +473,9 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/
 RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
-    ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' --with-openssl-src=/usr/local/build/openssl-${OPENSSL_VERSION} &&\
+    ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' &&\
     make build_mruby &&\
-    make generate_gems_config_dynamic
+    make generate_gems_config
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
 # NOTE: couldn't think of a way to substitute NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES without echoing it to a file - everything else I tried ended up removing some characters (e.g. quotes)
@@ -496,7 +497,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -505,6 +506,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-stream_geoip_module \
         --with-stream_ssl_module \
         --with-stream_ssl_preread_module \
+        --add-dynamic-module=/usr/local/build/nchan-${NCHAN_MODULE_VERSION} \
         --add-module=/usr/local/build/headers-more-nginx-module-${HEADERS_MORE_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_auth_pam_module-${HTTP_AUTH_PAM_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_cache_purge-${CACHE_PURGE_MODULE_VERSION} \
@@ -512,7 +514,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx_devel_kit-${DEVEL_KIT_MODULE_VERSION} \
         --add-module=/usr/local/build/echo-nginx-module-${ECHO_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx-fancyindex-${FANCYINDEX_MODULE_VERSION} \
-        --add-module=/usr/local/build/nchan-${NCHAN_MODULE_VERSION} \
         --add-module=/usr/local/build/lua-nginx-module-${LUA_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-rtmp-module-${RTMP_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
@@ -565,6 +566,10 @@ RUN echo "{ \
   \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\" \
 }" >> /etc/nginx/compilation-configuration.json
 
+RUN mkdir -p /usr/lib/nginx/modules
+RUN mkdir -p /etc/nginx/modules-enabled
+RUN include_modules.rb
+
 RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
@@ -585,6 +590,9 @@ RUN rm -rf /usr/local/debs/*.deb
 COPY --from=passenger /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 
+# make sure to clean any existing modules
+RUN rm -rf /usr/lib/nginx/modules/*
+
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_passenger_configure &&\
     echo "./configure \
@@ -603,7 +611,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -618,8 +626,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
     make modules
 
 RUN current_state.sh before
-RUN mkdir -p /usr/lib/nginx/modules
-RUN mkdir -p /etc/nginx/modules-enabled
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
 RUN include_modules.rb
 RUN current_state.sh after
@@ -639,6 +645,9 @@ RUN rm -rf /usr/local/debs/*.deb
 COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 RUN dpkg -i /usr/local/debs/*.deb
 
+# make sure to clean any existing modules
+RUN rm -rf /usr/lib/nginx/modules/*
+
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_passenger_enterprise_configure &&\
     echo "./configure \
@@ -657,7 +666,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --with-http_gzip_static_module \
         --with-http_image_filter_module \
         --with-http_mp4_module \
-        --with-http_perl_module \
+        --with-http_perl_module=dynamic \
         --with-http_random_index_module \
         --with-http_secure_link_module \
         --with-http_sub_module \
@@ -672,8 +681,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
     make modules
 
 RUN current_state.sh before
-RUN mkdir -p /usr/lib/nginx/modules
-RUN mkdir -p /etc/nginx/modules-enabled
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
 RUN include_modules.rb
 RUN current_state.sh after
@@ -748,6 +755,8 @@ FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
 
 RUN tar -C / -zxvf nginx.tar.gz
@@ -768,6 +777,8 @@ RUN touch /tmp/test_successful
 FROM ubuntu:$OPERATING_SYSTEM_VERSION AS test-passenger-enterprise-true
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY --from=prefinal /nginx.tar.gz /nginx.tar.gz
 
