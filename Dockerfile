@@ -38,7 +38,7 @@ ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.3
-ARG NGX_MRUBY_VERSION=2.2.4
+ARG NGX_MRUBY_VERSION=2.5.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
