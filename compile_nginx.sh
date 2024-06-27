@@ -3,28 +3,24 @@ set -e
 
 if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]]; then
     echo "FATAL: Expected ARGS:"
-    echo "1. os-version: 18.04"
-    echo "2. nginx-version: ie. 1.18.0"
+    echo "1. os-version: 20.04"
+    echo "2. nginx-version: 1.18.0"
     echo "3. passenger-version: 6.0.10"
     echo "4. release-version: 1.0.0"
     echo ""
     echo "Usage Examples:"
-    echo "./compile_nginx.sh 18.04 1.18.0 6.0.10 1.0.0"
+    echo "./compile_nginx.sh 20.04 1.18.0 6.0.10 1.0.0"
     exit 22
 fi
 
 case $1 in
-    18.04)
-	OPERATING_SYSTEM_CODENAME=bionic
-        OPENSSL_VERSION=1.1.1s
-	;;
     20.04)
 	OPERATING_SYSTEM_CODENAME=focal
         OPENSSL_VERSION=1.1.1s
 	;;
     22.04)
 	OPERATING_SYSTEM_CODENAME=jammy
-        OPENSSL_VERSION=3.0.7
+        OPENSSL_VERSION=3.0.14
 	;;
     *)
 	echo "Unknown operating system"

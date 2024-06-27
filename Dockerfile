@@ -18,27 +18,30 @@ ARG MODSECURITY_VERSION=3.0.5
 ARG LUAJIT2_VERSION=2.1.0-beta3
 ARG LUAJIT2_PACKAGE_VERSION=2.1-20210510
 ARG LUAJIT2_SHORT_VERSION=2.1
-ARG LUA_RESTY_CORE_VERSION=0.1.22
+ARG LUA_RESTY_CORE_VERSION=0.1.28
 ARG LUA_RESTY_LRUCACHE_VERSION=0.11
 ARG LIBMAXMINDDB_VERSION=1.6.0
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.2
-ARG HEADERS_MORE_MODULE_VERSION=0.33
+ARG HEADERS_MORE_MODULE_VERSION=0.37
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.3
 ARG CACHE_PURGE_MODULE_VERSION=2.4.3
 ARG DAV_EXT_MODULE_VERSION=3.0.0
 ARG DEVEL_KIT_MODULE_VERSION=0.3.1
-ARG ECHO_MODULE_VERSION=0.62
+ARG ECHO_MODULE_VERSION=0.63
 ARG FANCYINDEX_MODULE_VERSION=0.5.1
 ARG NCHAN_MODULE_VERSION=1.3.1
-ARG LUA_MODULE_VERSION=0.10.20
+ARG LUA_MODULE_VERSION=0.10.26
 ARG RTMP_MODULE_VERSION=1.2.2
+# TODO-1235: this doesn't seem to work with NGINX 1.26.1 - there's a fix but it's not released yet (and I think it doesn't work with 1.24.x either)
+# /usr/local/build/nginx-upload-progress-module-0.9.2/ngx_http_uploadprogress_module.c:666:53: error: 'r->headers_out.cache_control' is a pointer; did you mean to use '->'?
 ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
-ARG HTTP_GEOIP2_MODULE_VERSION=3.3
-ARG NGX_MRUBY_VERSION=2.5.0
+ARG HTTP_GEOIP2_MODULE_VERSION=3.4
+ARG NGX_MRUBY_VERSION=2.6.0
+ARG HTTP_AUTH_JWT_MODULE_VERSION=2.1.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -67,7 +70,7 @@ RUN mkdir -p /usr/local/debs
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev 
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev libjwt-dev libjansson-dev
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -370,6 +373,7 @@ ARG UPSTREAM_FAIR_MODULE_VERSION
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION
 ARG HTTP_GEOIP2_MODULE_VERSION
 ARG NGX_MRUBY_VERSION
+ARG HTTP_AUTH_JWT_MODULE_VERSION
 
 ARG NGINX_DEB_VERSION
 
@@ -419,13 +423,15 @@ RUN wget https://github.com/openresty/lua-nginx-module/archive/refs/tags/v${LUA_
 # directory name: nginx-rtmp-module-${RTMP_MODULE_VERSION}
 RUN wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v${RTMP_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${RTMP_MODULE_VERSION}.tar.gz
 # directory name: nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION}
-RUN wget https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz
+# RUN wget https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz
 # directory name: nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION}
 RUN wget https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}
 RUN wget https://github.com/yaoweibin/ngx_http_substitutions_filter_module/archive/refs/tags/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION}
 RUN wget https://github.com/leev/ngx_http_geoip2_module/archive/refs/tags/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz
+# directory name: ngx-http-auth-jwt-module-${HTTP_AUTH_JWT_MODULE_VERSION}
+RUN wget https://github.com/TeslaGov/ngx-http-auth-jwt-module/archive/refs/tags/${HTTP_AUTH_JWT_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${HTTP_AUTH_JWT_MODULE_VERSION}.tar.gz
 
 # INSTALL NGINX
 
@@ -435,8 +441,9 @@ ENV LUAJIT_LIB=/usr/local/lib
 ENV LUAJIT_INC=/usr/local/include/luajit-${LUAJIT2_SHORT_VERSION}
 
 # NOTE: define NGINX configure options here because mruby also needs them
+# NOTE: -DNGX_LINKED_LIST_COOKIES=1 is required for https://github.com/TeslaGov/ngx-http-auth-jwt-module/issues/127
 ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
---with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2\" \
+--with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2 -DNGX_LINKED_LIST_COOKIES=1\" \
 --with-ld-opt=\"-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC\" \
 --prefix=/usr/share/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -479,6 +486,8 @@ RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
 # NOTE: couldn't think of a way to substitute NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES without echoing it to a file - everything else I tried ended up removing some characters (e.g. quotes)
+# TODO-1235: re-add this when possible:
+# --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_configure &&\
     echo "./configure \
@@ -516,11 +525,11 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx-fancyindex-${FANCYINDEX_MODULE_VERSION} \
         --add-module=/usr/local/build/lua-nginx-module-${LUA_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-rtmp-module-${RTMP_MODULE_VERSION} \
-        --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
+        --add-module=/usr/local/build/ngx-http-auth-jwt-module-${HTTP_AUTH_JWT_MODULE_VERSION} \
         --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
     chmod +x ./real_configure &&\
     ./real_configure &&\
@@ -535,6 +544,8 @@ RUN cp /usr/share/nginx/sbin/nginx /usr/sbin/nginx
 # Required for NGINX to find the openresty library
 RUN ln -s /usr/local/lib/lua/resty /usr/local/share/luajit-${LUAJIT2_VERSION}/resty
 
+# TODO-1235: re-add this when possible
+# \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
 RUN echo "{ \
   \"NGINX_VERSION\":\"${NGINX_VERSION}\", \
   \"PASSENGER_VERSION\":\"${PASSENGER_VERSION}\", \
@@ -559,11 +570,11 @@ RUN echo "{ \
   \"NCHAN_MODULE_VERSION\":\"${NCHAN_MODULE_VERSION}\", \
   \"LUA_MODULE_VERSION\":\"${LUA_MODULE_VERSION}\", \
   \"RTMP_MODULE_VERSION\":\"${RTMP_MODULE_VERSION}\", \
-  \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
   \"UPSTREAM_FAIR_MODULE_VERSION\":\"${UPSTREAM_FAIR_MODULE_VERSION}\", \
   \"HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION\":\"${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}\", \
   \"HTTP_GEOIP2_MODULE_VERSION\":\"${HTTP_GEOIP2_MODULE_VERSION}\", \
-  \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\" \
+  \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\", \
+  \"HTTP_AUTH_JWT_MODULE_VERSION\":\"${HTTP_AUTH_JWT_MODULE_VERSION}\" \
 }" >> /etc/nginx/compilation-configuration.json
 
 RUN mkdir -p /usr/lib/nginx/modules
@@ -574,7 +585,7 @@ RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
-RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit"}'
+RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libjwt-dev, libjansson-dev"}'
 
 ######################################################################################################################################################################################################################################
 
