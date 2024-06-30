@@ -33,9 +33,7 @@ ARG FANCYINDEX_MODULE_VERSION=0.5.2
 ARG NCHAN_MODULE_VERSION=1.3.6
 ARG LUA_MODULE_VERSION=0.10.26
 ARG RTMP_MODULE_VERSION=1.2.2
-# TODO-1235: this doesn't seem to work with NGINX 1.26.1 - there's a fix but it's not released yet (and I think it doesn't work with 1.24.x either)
-# /usr/local/build/nginx-upload-progress-module-0.9.2/ngx_http_uploadprogress_module.c:666:53: error: 'r->headers_out.cache_control' is a pointer; did you mean to use '->'?
-ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.2
+ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.3
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
@@ -421,7 +419,7 @@ RUN wget https://github.com/openresty/lua-nginx-module/archive/refs/tags/v${LUA_
 # directory name: nginx-rtmp-module-${RTMP_MODULE_VERSION}
 RUN wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v${RTMP_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${RTMP_MODULE_VERSION}.tar.gz
 # directory name: nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION}
-# RUN wget https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz
+RUN wget https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz
 # directory name: nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION}
 RUN wget https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}
@@ -484,8 +482,6 @@ RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
 # NOTE: couldn't think of a way to substitute NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES without echoing it to a file - everything else I tried ended up removing some characters (e.g. quotes)
-# TODO-1235: re-add this when possible:
-# --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
 RUN cd nginx-${NGINX_VERSION} &&\
     echo '#!/usr/bin/env bash' >> real_configure &&\
     echo "./configure \
@@ -523,6 +519,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx-fancyindex-${FANCYINDEX_MODULE_VERSION} \
         --add-module=/usr/local/build/lua-nginx-module-${LUA_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-rtmp-module-${RTMP_MODULE_VERSION} \
+        --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
@@ -542,8 +539,6 @@ RUN cp /usr/share/nginx/sbin/nginx /usr/sbin/nginx
 # Required for NGINX to find the openresty library
 RUN ln -s /usr/local/lib/lua/resty /usr/local/share/luajit-${LUAJIT2_VERSION}/resty
 
-# TODO-1235: re-add this when possible
-# \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
 RUN echo "{ \
   \"NGINX_VERSION\":\"${NGINX_VERSION}\", \
   \"PASSENGER_VERSION\":\"${PASSENGER_VERSION}\", \
@@ -567,6 +562,7 @@ RUN echo "{ \
   \"NCHAN_MODULE_VERSION\":\"${NCHAN_MODULE_VERSION}\", \
   \"LUA_MODULE_VERSION\":\"${LUA_MODULE_VERSION}\", \
   \"RTMP_MODULE_VERSION\":\"${RTMP_MODULE_VERSION}\", \
+  \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
   \"UPSTREAM_FAIR_MODULE_VERSION\":\"${UPSTREAM_FAIR_MODULE_VERSION}\", \
   \"HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION\":\"${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}\", \
   \"HTTP_GEOIP2_MODULE_VERSION\":\"${HTTP_GEOIP2_MODULE_VERSION}\", \
