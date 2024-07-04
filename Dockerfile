@@ -38,7 +38,6 @@ ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
 ARG NGX_MRUBY_VERSION=2.6.0
-ARG HTTP_AUTH_JWT_MODULE_VERSION=2.1.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -67,7 +66,7 @@ RUN mkdir -p /usr/local/debs
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev libjwt-dev libjansson-dev
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -369,7 +368,6 @@ ARG UPSTREAM_FAIR_MODULE_VERSION
 ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION
 ARG HTTP_GEOIP2_MODULE_VERSION
 ARG NGX_MRUBY_VERSION
-ARG HTTP_AUTH_JWT_MODULE_VERSION
 
 ARG NGINX_DEB_VERSION
 
@@ -426,8 +424,6 @@ RUN wget https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/${U
 RUN wget https://github.com/yaoweibin/ngx_http_substitutions_filter_module/archive/refs/tags/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION}
 RUN wget https://github.com/leev/ngx_http_geoip2_module/archive/refs/tags/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz
-# directory name: ngx-http-auth-jwt-module-${HTTP_AUTH_JWT_MODULE_VERSION}
-RUN wget https://github.com/TeslaGov/ngx-http-auth-jwt-module/archive/refs/tags/${HTTP_AUTH_JWT_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${HTTP_AUTH_JWT_MODULE_VERSION}.tar.gz
 
 # INSTALL NGINX
 
@@ -437,9 +433,8 @@ ENV LUAJIT_LIB=/usr/local/lib
 ENV LUAJIT_INC=/usr/local/include/luajit-${LUAJIT2_VERSION}
 
 # NOTE: define NGINX configure options here because mruby also needs them
-# NOTE: -DNGX_LINKED_LIST_COOKIES=1 is required for https://github.com/TeslaGov/ngx-http-auth-jwt-module/issues/127
 ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
---with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2 -DNGX_LINKED_LIST_COOKIES=1\" \
+--with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2\" \
 --with-ld-opt=\"-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC\" \
 --prefix=/usr/share/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -524,7 +519,6 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
-        --add-module=/usr/local/build/ngx-http-auth-jwt-module-${HTTP_AUTH_JWT_MODULE_VERSION} \
         --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
     chmod +x ./real_configure &&\
     ./real_configure &&\
@@ -567,7 +561,6 @@ RUN echo "{ \
   \"HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION\":\"${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}\", \
   \"HTTP_GEOIP2_MODULE_VERSION\":\"${HTTP_GEOIP2_MODULE_VERSION}\", \
   \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\", \
-  \"HTTP_AUTH_JWT_MODULE_VERSION\":\"${HTTP_AUTH_JWT_MODULE_VERSION}\" \
 }" >> /etc/nginx/compilation-configuration.json
 
 RUN mkdir -p /usr/lib/nginx/modules
@@ -578,7 +571,7 @@ RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
-RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libjwt-dev, libjansson-dev"}'
+RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit"}'
 
 ######################################################################################################################################################################################################################################
 
