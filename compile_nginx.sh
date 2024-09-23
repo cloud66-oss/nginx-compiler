@@ -22,6 +22,10 @@ case $1 in
 	OPERATING_SYSTEM_CODENAME=jammy
         OPENSSL_VERSION=3.0.14
 	;;
+    24.04)
+	OPERATING_SYSTEM_CODENAME=noble
+        OPENSSL_VERSION=3.0.14
+	;;
     *)
 	echo "Unknown operating system"
 	exit 1
