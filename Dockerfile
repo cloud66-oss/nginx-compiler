@@ -11,6 +11,7 @@ ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
 ARG AUTOMAKE_VERSION=1.16.5
+# TODO-24.04: make this use PCRE2
 ARG PCRE_VERSION=8.45
 ARG ZLIB_VERSION=1.3.1
 ARG LIBGD_VERSION=2.3.3
@@ -66,6 +67,7 @@ RUN mkdir -p /usr/local/debs
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-get update &&\
+    # TODO-24.04: make this install PCRE2 dev libs as 1.0 libs no longer available on 24.04 - should hopefully be enough to change libpcre++-dev to libpcre2-dev
     apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev
 
 # NGINX seems to require a specific version of automake, but only sometimes...
@@ -115,6 +117,7 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
+# TODO-24.04: make this compile PCRE2 instead - the project is located at /pcre/files/pcre2 and the latest version is 10.37, the directory names after untarring might be different (pcre2-VERSION maybe?)
 RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar -zxf /usr/local/sources/pcre-${PCRE_VERSION}.tar.gz &&\
     cd pcre-${PCRE_VERSION} &&\
@@ -457,6 +460,7 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 # $ nginx -V 2>&1 | grep OpenSSL
 # built with OpenSSL 1.1.1g  21 Apr 2020 (running with OpenSSL 1.1.1  11 Sep 2018)
 # --with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
+# TODO-24.04: make this use PCRE2
 --with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
 --with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
 --with-threads \
