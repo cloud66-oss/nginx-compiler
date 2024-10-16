@@ -13,6 +13,7 @@ if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]]; then
     exit 22
 fi
 
+# NOTE: for OPENSSL_VERSION use latest patch of the major/minor installed on the OS
 case $1 in
     20.04)
 	OPERATING_SYSTEM_CODENAME=focal
@@ -20,7 +21,11 @@ case $1 in
 	;;
     22.04)
 	OPERATING_SYSTEM_CODENAME=jammy
-        OPENSSL_VERSION=3.0.14
+        OPENSSL_VERSION=3.0.15
+	;;
+    24.04)
+	OPERATING_SYSTEM_CODENAME=noble
+        OPENSSL_VERSION=3.0.15
 	;;
     24.04)
 	OPERATING_SYSTEM_CODENAME=noble
