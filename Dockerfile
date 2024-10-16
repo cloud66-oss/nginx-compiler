@@ -10,16 +10,16 @@ ARG RELEASE_VERSION=*passed-in*
 ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
-ARG AUTOMAKE_VERSION=1.16.5
-ARG PCRE_VERSION=8.45
+ARG AUTOMAKE_VERSION=1.17
+ARG PCRE2_VERSION=10.37
 ARG ZLIB_VERSION=1.3.1
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.12
+ARG MODSECURITY_VERSION=3.0.13
 ARG LUAJIT2_VERSION=2.1
-ARG LUAJIT2_PACKAGE_VERSION=2.1-20240626
-ARG LUA_RESTY_CORE_VERSION=0.1.28
-ARG LUA_RESTY_LRUCACHE_VERSION=0.13
-ARG LIBMAXMINDDB_VERSION=1.10.0
+ARG LUAJIT2_PACKAGE_VERSION=2.1-20240815
+ARG LUA_RESTY_CORE_VERSION=0.1.30
+ARG LUA_RESTY_LRUCACHE_VERSION=0.14
+ARG LIBMAXMINDDB_VERSION=1.11.0
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.3
@@ -30,12 +30,10 @@ ARG DAV_EXT_MODULE_VERSION=3.0.0
 ARG DEVEL_KIT_MODULE_VERSION=0.3.3
 ARG ECHO_MODULE_VERSION=0.63
 ARG FANCYINDEX_MODULE_VERSION=0.5.2
-ARG NCHAN_MODULE_VERSION=1.3.6
-ARG LUA_MODULE_VERSION=0.10.26
+ARG NCHAN_MODULE_VERSION=1.3.7
+ARG LUA_MODULE_VERSION=0.10.27
 ARG RTMP_MODULE_VERSION=1.2.2
-ARG UPLOAD_PROGRESS_MODULE_VERSION=0.9.3
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
-ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION=0.6.4
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
 ARG NGX_MRUBY_VERSION=2.6.0
 
@@ -66,7 +64,7 @@ RUN mkdir -p /usr/local/debs
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre++-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre2-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -108,23 +106,23 @@ RUN generate_deb.rb openssl ${OPENSSL_VERSION} source
 
 ######################################################################################################################################################################################################################################
 
-FROM base AS pcre
-ARG PCRE_VERSION
+FROM base AS pcre2
+ARG PCRE2_VERSION
 WORKDIR /usr/local/build
 
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://sourceforge.net/projects/pcre/files/pcre/${PCRE_VERSION}/pcre-${PCRE_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar -zxf /usr/local/sources/pcre-${PCRE_VERSION}.tar.gz &&\
-    cd pcre-${PCRE_VERSION} &&\
+RUN wget https://sourceforge.net/projects/pcre/files/pcre2/${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar -zxf /usr/local/sources/pcre2-${PCRE2_VERSION}.tar.gz &&\
+    cd pcre2-${PCRE2_VERSION} &&\
     ./configure &&\
     make &&\
     make install
 
 RUN current_state.sh after
-RUN generate_deb.rb pcre ${PCRE_VERSION} binary
-RUN generate_deb.rb pcre ${PCRE_VERSION} source
+RUN generate_deb.rb pcre2 ${PCRE2_VERSION} binary
+RUN generate_deb.rb pcre2 ${PCRE2_VERSION} source
 
 ######################################################################################################################################################################################################################################
 
@@ -263,7 +261,7 @@ RUN wget https://github.com/SpiderLabs/ModSecurity/releases/download/v${MODSECUR
     tar zxf /usr/local/sources/modsecurity-v${MODSECURITY_VERSION}.tar.gz &&\
     cd modsecurity-v${MODSECURITY_VERSION} &&\
     ./build.sh &&\
-    ./configure --with-maxmind=/usr/local &&\
+    ./configure --with-maxmind=/usr/local --with-pcre2 &&\
     make &&\
     make install
 
@@ -344,7 +342,7 @@ ARG PASSENGER_VERSION
 ARG RELEASE_VERSION
 
 ARG OPENSSL_VERSION
-ARG PCRE_VERSION
+ARG PCRE2_VERSION
 ARG ZLIB_VERSION
 ARG MODSECURITY_VERSION
 ARG LUAJIT2_VERSION
@@ -363,9 +361,7 @@ ARG FANCYINDEX_MODULE_VERSION
 ARG NCHAN_MODULE_VERSION
 ARG LUA_MODULE_VERSION
 ARG RTMP_MODULE_VERSION
-ARG UPLOAD_PROGRESS_MODULE_VERSION
 ARG UPSTREAM_FAIR_MODULE_VERSION
-ARG HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION
 ARG HTTP_GEOIP2_MODULE_VERSION
 ARG NGX_MRUBY_VERSION
 
@@ -374,7 +370,7 @@ ARG NGINX_DEB_VERSION
 WORKDIR /usr/local/build
 
 COPY --from=openssl /usr/local/debs /usr/local/debs
-COPY --from=pcre /usr/local/debs /usr/local/debs
+COPY --from=pcre2 /usr/local/debs /usr/local/debs
 COPY --from=zlib /usr/local/debs /usr/local/debs
 COPY --from=modsecurity /usr/local/debs /usr/local/debs
 COPY --from=luajit2 /usr/local/debs /usr/local/debs
@@ -416,12 +412,8 @@ RUN wget https://github.com/slact/nchan/archive/refs/tags/v${NCHAN_MODULE_VERSIO
 RUN wget https://github.com/openresty/lua-nginx-module/archive/refs/tags/v${LUA_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${LUA_MODULE_VERSION}.tar.gz
 # directory name: nginx-rtmp-module-${RTMP_MODULE_VERSION}
 RUN wget https://github.com/arut/nginx-rtmp-module/archive/refs/tags/v${RTMP_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${RTMP_MODULE_VERSION}.tar.gz
-# directory name: nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION}
-RUN wget https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz
 # directory name: nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION}
 RUN wget https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${UPSTREAM_FAIR_MODULE_VERSION}.tar.gz
-# directory name: ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}
-RUN wget https://github.com/yaoweibin/ngx_http_substitutions_filter_module/archive/refs/tags/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION}
 RUN wget https://github.com/leev/ngx_http_geoip2_module/archive/refs/tags/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${HTTP_GEOIP2_MODULE_VERSION}.tar.gz
 
@@ -457,7 +449,7 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 # $ nginx -V 2>&1 | grep OpenSSL
 # built with OpenSSL 1.1.1g  21 Apr 2020 (running with OpenSSL 1.1.1  11 Sep 2018)
 # --with-openssl=/usr/local/build/openssl-${OPENSSL_VERSION} \
---with-pcre=/usr/local/build/pcre-${PCRE_VERSION} \
+--with-pcre=/usr/local/build/pcre2-${PCRE2_VERSION} \
 --with-zlib=/usr/local/build/zlib-${ZLIB_VERSION} \
 --with-threads \
 --with-mail \
@@ -514,9 +506,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ngx-fancyindex-${FANCYINDEX_MODULE_VERSION} \
         --add-module=/usr/local/build/lua-nginx-module-${LUA_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-rtmp-module-${RTMP_MODULE_VERSION} \
-        --add-module=/usr/local/build/nginx-upload-progress-module-${UPLOAD_PROGRESS_MODULE_VERSION} \
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
-        --add-module=/usr/local/build/ngx_http_substitutions_filter_module-${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
         --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
@@ -538,7 +528,7 @@ RUN echo "{ \
   \"PASSENGER_VERSION\":\"${PASSENGER_VERSION}\", \
   \"RELEASE_VERSION\":\"${RELEASE_VERSION}\", \
   \"OPENSSL_VERSION\":\"${OPENSSL_VERSION}\", \
-  \"PCRE_VERSION\":\"${PCRE_VERSION}\", \
+  \"PCRE2_VERSION\":\"${PCRE2_VERSION}\", \
   \"ZLIB_VERSION\":\"${ZLIB_VERSION}\", \
   \"MODSECURITY_VERSION\":\"${MODSECURITY_VERSION}\", \
   \"LUAJIT2_VERSION\":\"${LUAJIT2_VERSION}\", \
@@ -556,9 +546,7 @@ RUN echo "{ \
   \"NCHAN_MODULE_VERSION\":\"${NCHAN_MODULE_VERSION}\", \
   \"LUA_MODULE_VERSION\":\"${LUA_MODULE_VERSION}\", \
   \"RTMP_MODULE_VERSION\":\"${RTMP_MODULE_VERSION}\", \
-  \"UPLOAD_PROGRESS_MODULE_VERSION\":\"${UPLOAD_PROGRESS_MODULE_VERSION}\", \
   \"UPSTREAM_FAIR_MODULE_VERSION\":\"${UPSTREAM_FAIR_MODULE_VERSION}\", \
-  \"HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION\":\"${HTTP_SUBSTITUTIONS_FILTER_MODULE_VERSION}\", \
   \"HTTP_GEOIP2_MODULE_VERSION\":\"${HTTP_GEOIP2_MODULE_VERSION}\", \
   \"NGX_MRUBY_VERSION\":\"${NGX_MRUBY_VERSION}\" \
 }" >> /etc/nginx/compilation-configuration.json
@@ -571,7 +559,7 @@ RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
-RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit"}'
+RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libperl-dev"}'
 
 ######################################################################################################################################################################################################################################
 
