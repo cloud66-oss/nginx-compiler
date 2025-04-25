@@ -14,16 +14,16 @@ ARG AUTOMAKE_VERSION=1.17
 ARG PCRE2_VERSION=10.37
 ARG ZLIB_VERSION=1.3.1
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.13
+ARG MODSECURITY_VERSION=3.0.14
 ARG LUAJIT2_VERSION=2.1
-ARG LUAJIT2_PACKAGE_VERSION=2.1-20240815
-ARG LUA_RESTY_CORE_VERSION=0.1.30
-ARG LUA_RESTY_LRUCACHE_VERSION=0.14
-ARG LIBMAXMINDDB_VERSION=1.11.0
+ARG LUAJIT2_PACKAGE_VERSION=2.1-20250117
+ARG LUA_RESTY_CORE_VERSION=0.1.31
+ARG LUA_RESTY_LRUCACHE_VERSION=0.15
+ARG LIBMAXMINDDB_VERSION=1.12.2
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.3
-ARG HEADERS_MORE_MODULE_VERSION=0.37
+ARG HEADERS_MORE_MODULE_VERSION=0.38
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.5
 ARG CACHE_PURGE_MODULE_VERSION=2.5.3
 ARG DAV_EXT_MODULE_VERSION=3.0.0
@@ -31,11 +31,11 @@ ARG DEVEL_KIT_MODULE_VERSION=0.3.3
 ARG ECHO_MODULE_VERSION=0.63
 ARG FANCYINDEX_MODULE_VERSION=0.5.2
 ARG NCHAN_MODULE_VERSION=1.3.7
-ARG LUA_MODULE_VERSION=0.10.27
+ARG LUA_MODULE_VERSION=0.10.28
 ARG RTMP_MODULE_VERSION=1.2.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
-ARG NGX_MRUBY_VERSION=2.6.0
+ARG NGX_MRUBY_VERSION=2.7.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -460,8 +460,8 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz
 
-RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
+RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/V${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar zxf /usr/local/sources/V${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
     ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' &&\
     make build_mruby &&\
@@ -559,7 +559,7 @@ RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
-RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libperl-dev"}'
+RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libperl-dev, libyajl-dev"}'
 
 ######################################################################################################################################################################################################################################
 
@@ -749,7 +749,8 @@ RUN tar -C / -zxvf nginx.tar.gz
 # NOTE: dpkg doesn't respect dependencies if you just give it a list of all packages to install, but apt does
 RUN apt update && apt install -y /usr/local/debs/**/prerequisites/*.deb /usr/local/debs/**/nginx/*.deb /usr/local/debs/**/passenger/*.deb /usr/local/debs/**/passenger-module/*.deb
 
-# NOTE: curl is a requirement for test_nginx.sh and ruby is a requirement for Passenger
+# NOTE: - curl is a requirement for test_nginx.sh
+#       - ruby is a requirement for Passenger
 RUN apt-get update && apt-get install -y curl ruby
 
 ADD test_nginx.sh /usr/local/bin
@@ -774,7 +775,8 @@ ADD passenger_enterprise/passenger-enterprise-license /etc/passenger-enterprise-
 # NOTE: dpkg doesn't respect dependencies if you just give it a list of all packages to install, but apt does
 RUN apt update && apt install -y /usr/local/debs/**/prerequisites/*.deb /usr/local/debs/**/nginx/*.deb /usr/local/debs/**/passenger-enterprise/*.deb /usr/local/debs/**/passenger-enterprise-module/*.deb
 
-# NOTE: curl is a requirement for test_nginx.sh and ruby is a requirement for Passenger
+# NOTE: - curl is a requirement for test_nginx.sh
+#       - ruby is a requirement for Passenger
 RUN apt-get update && apt-get install -y curl ruby
 
 ADD test_nginx.sh /usr/local/bin
