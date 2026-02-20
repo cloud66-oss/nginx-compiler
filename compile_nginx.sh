@@ -21,11 +21,11 @@ case $1 in
 	;;
     22.04)
 	OPERATING_SYSTEM_CODENAME=jammy
-        OPENSSL_VERSION=3.0.18
+        OPENSSL_VERSION=3.0.19
 	;;
     24.04)
 	OPERATING_SYSTEM_CODENAME=noble
-        OPENSSL_VERSION=3.0.18
+        OPENSSL_VERSION=3.0.19
 	;;
     *)
 	echo "Unknown operating system"
