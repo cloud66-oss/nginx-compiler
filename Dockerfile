@@ -10,26 +10,26 @@ ARG RELEASE_VERSION=*passed-in*
 ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
-ARG AUTOMAKE_VERSION=1.18
-ARG PCRE2_VERSION=10.37
+ARG AUTOMAKE_VERSION=1.18.1
+ARG PCRE2_VERSION=10.47
 ARG ZLIB_VERSION=1.3.2
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.14
+ARG MODSECURITY_VERSION=3.0.15
 ARG LUAJIT2_VERSION=2.1
-ARG LUAJIT2_PACKAGE_VERSION=2.1-20250826
+ARG LUAJIT2_PACKAGE_VERSION=2.1-20260415
 ARG LUA_RESTY_CORE_VERSION=0.1.32
 ARG LUA_RESTY_LRUCACHE_VERSION=0.15
-ARG LIBMAXMINDDB_VERSION=1.12.2
+ARG LIBMAXMINDDB_VERSION=1.13.3
 
 # NOTE: these are updated as required (NGINX modules)
-ARG MODSECURITY_MODULE_VERSION=1.0.3
+ARG MODSECURITY_MODULE_VERSION=1.0.4
 ARG HEADERS_MORE_MODULE_VERSION=0.39
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.5
-ARG CACHE_PURGE_MODULE_VERSION=2.5.6
+ARG CACHE_PURGE_MODULE_VERSION=3.0.2
 ARG DAV_EXT_MODULE_VERSION=3.0.0
-ARG DEVEL_KIT_MODULE_VERSION=0.3.3
+ARG DEVEL_KIT_MODULE_VERSION=0.3.4
 ARG ECHO_MODULE_VERSION=0.64
-ARG FANCYINDEX_MODULE_VERSION=0.5.2
+ARG FANCYINDEX_MODULE_VERSION=0.6.0
 ARG NCHAN_MODULE_VERSION=1.3.8
 ARG LUA_MODULE_VERSION=0.10.29
 ARG RTMP_MODULE_VERSION=1.2.2
@@ -113,7 +113,7 @@ WORKDIR /usr/local/build
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
-RUN wget https://sourceforge.net/projects/pcre/files/pcre2/${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.gz -P /usr/local/sources &&\
     tar -zxf /usr/local/sources/pcre2-${PCRE2_VERSION}.tar.gz &&\
     cd pcre2-${PCRE2_VERSION} &&\
     ./configure &&\
@@ -257,7 +257,7 @@ RUN apt-get purge -y libgeoip-dev
 RUN current_state.sh before
 
 # Required for modsecurity-nginx: https://www.nginx.com/blog/compiling-and-installing-modsecurity-for-open-source-nginx/
-RUN wget https://github.com/SpiderLabs/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://github.com/owasp-modsecurity/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/modsecurity-v${MODSECURITY_VERSION}.tar.gz &&\
     cd modsecurity-v${MODSECURITY_VERSION} &&\
     ./build.sh &&\
@@ -388,8 +388,8 @@ ADD include_modules.rb /usr/local/bin
 # ENV CPATH=/usr/local/ssl/include
 
 # MODULE SOURCES
-# directory name: modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}
-RUN wget https://github.com/SpiderLabs/ModSecurity-nginx/releases/download/v${MODSECURITY_MODULE_VERSION}/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz
+# directory name: ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}
+RUN wget https://github.com/owasp-modsecurity/ModSecurity-nginx/releases/download/v${MODSECURITY_MODULE_VERSION}/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz
 # directory name: headers-more-nginx-module-${HEADERS_MORE_MODULE_VERSION}
 RUN wget https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v${HEADERS_MORE_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${HEADERS_MORE_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_auth_pam_module-${HTTP_AUTH_PAM_MODULE_VERSION}
@@ -509,7 +509,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
-        --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
+        --add-module=/usr/local/build/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
     chmod +x ./real_configure &&\
     ./real_configure &&\
     make &&\
