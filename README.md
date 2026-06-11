@@ -37,33 +37,33 @@ Doing this for the NGINX and Passenger tarballs will result in the following fil
 ```
 $ find /usr/local/debs/
 /usr/local/debs/
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/nginx-module-http-passenger_6.0.10+nginx1.20.1-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/nginx
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/nginx/nginx_1.20.1-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/openresty-lua-lrucache_0.10-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/modsecurity_3.0.4-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/openresty-luajit_2.1-20210510-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/openresty-lua-core_0.1.21-1.0.0~bionic1_amd64.deb
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger
-/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/passenger_6.0.10-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-module
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-module/nginx-module-http-passenger_6.0.10+nginx1.20.1-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/nginx
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/nginx/nginx_1.20.1-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites/openresty-lua-lrucache_0.10-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites/modsecurity_3.0.4-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites/openresty-luajit_2.1-20210510-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites/openresty-lua-core_0.1.21-1.0.0~bionic1_amd64.deb
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger
+/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger/passenger_6.0.10-1.0.0~bionic1_amd64.deb
 ```
 
 You can then install NGINX with the following:
 ```
-sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/prerequisites/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/nginx/*.deb
+sudo apt-get install /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/prerequisites/*.deb /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/nginx/*.deb
 ```
 
 and Passenger (which depends on this NGINX installation) with the following:
 ```
-sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-module/*.deb
+sudo apt-get install /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger/*.deb /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-module/*.deb
 ```
 
-For Passenger Enterprise, you will also have the `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise` and `/usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module` directories, which you can install instead of the standard Passenger installation as follows:
+For Passenger Enterprise, you will also have the `/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-enterprise` and `/usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-enterprise-module` directories, which you can install instead of the standard Passenger installation as follows:
 ```
-sudo apt-get install /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise/*.deb /usr/local/debs/ubuntu-18.04-nginx-1.0.0/passenger-enterprise-module/*.deb
+sudo apt-get install /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-enterprise/*.deb /usr/local/debs/ubuntu-18.04-amd64-nginx-1.0.0/passenger-enterprise-module/*.deb
 ```
 
 Be sure to purge any traces of previous NGINX or Passenger installations before attempting this.

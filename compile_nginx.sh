@@ -62,4 +62,4 @@ tag="cloud66-nginx:ubuntu-$1-$5-nginx-$2-passenger-$3-release-$4"
 # remove previous build
 docker rmi --force $tag >/dev/null 2>&1
 # build new version
-docker build --rm --build-arg OPERATING_SYSTEM_VERSION=$1 --build-arg OPERATING_SYSTEM_CODENAME=$OPERATING_SYSTEM_CODENAME --build-arg NGINX_VERSION=$2 --build-arg PASSENGER_VERSION=$3 --build-arg RELEASE_VERSION=$4 --build-arg INCLUDE_PASSENGER_ENTERPRISE=$INCLUDE_PASSENGER_ENTERPRISE --build-arg OPENSSL_VERSION=$OPENSSL_VERSION --tag $tag --platform "$DOCKER_PLATFORM" . >$build_log_file 2>&1
+docker build --rm --build-arg OPERATING_SYSTEM_VERSION=$1 --build-arg OPERATING_SYSTEM_CODENAME=$OPERATING_SYSTEM_CODENAME --build-arg OPERATING_SYSTEM_ARCHITECTURE=$5 --build-arg NGINX_VERSION=$2 --build-arg PASSENGER_VERSION=$3 --build-arg RELEASE_VERSION=$4 --build-arg INCLUDE_PASSENGER_ENTERPRISE=$INCLUDE_PASSENGER_ENTERPRISE --build-arg OPENSSL_VERSION=$OPENSSL_VERSION --tag $tag --platform "$DOCKER_PLATFORM" . >$build_log_file 2>&1

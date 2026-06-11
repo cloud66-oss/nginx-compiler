@@ -1,6 +1,7 @@
 # NOTE: these MUST be provided
 ARG OPERATING_SYSTEM_VERSION=*passed-in*
 ARG OPERATING_SYSTEM_CODENAME=*passed-in*
+ARG OPERATING_SYSTEM_ARCHITECTURE=*passed-in*
 ARG INCLUDE_PASSENGER_ENTERPRISE=*passed-in*
 
 # NOTE: these are recommended to be provided
@@ -702,6 +703,7 @@ FROM nginx-passenger-enterprise-${INCLUDE_PASSENGER_ENTERPRISE} AS nginx-passeng
 FROM base AS prefinal-base
 
 ARG OPERATING_SYSTEM_VERSION
+ARG OPERATING_SYSTEM_ARCHITECTURE
 ARG NGINX_VERSION
 ARG PASSENGER_VERSION
 ARG RELEASE_VERSION
@@ -721,7 +723,7 @@ COPY --from=nginx /usr/local/debs /usr/local/debs
 COPY --from=nginx-passenger /usr/local/debs /usr/local/debs
 COPY --from=passenger /usr/local/debs /usr/local/debs
 
-ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-nginx-${RELEASE_VERSION}"
+ENV DEB_DIRECTORY="/usr/local/debs/ubuntu-${OPERATING_SYSTEM_VERSION}-${OPERATING_SYSTEM_ARCHITECTURE}-nginx-${RELEASE_VERSION}"
 
 RUN mkdir -p ${DEB_DIRECTORY}
 RUN mkdir -p ${DEB_DIRECTORY}/prerequisites
