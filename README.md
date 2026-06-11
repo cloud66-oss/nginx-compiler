@@ -9,9 +9,9 @@ It is used by Cloud 66 to compile the default NGINX + Passenger installation for
 This project uses Docker to compile NGINX. You must have Docker installed on your host machine for the scripts to work.
 
 ## Compilation
-You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger + release versions. The release version is used to cover dependencies that are not covered by the other versions, e.g. build dependency/NGINX module update. For Ubuntu 18.04, NGINX 1.20.1, Passenger 6.0.10 and release 1.0.0, this is done by running the following:
+You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger + release versions and CPU architecture (`amd64` or `arm64`). The release version is used to cover dependencies that are not covered by the other versions, e.g. build dependency/NGINX module update. For Ubuntu 22.04, NGINX 1.30.1, Passenger 6.1.3, release 1.10.0 and arm64, this is done by running the following:
 ```bash
-./compile_nginx.sh 18.04 1.20.1 6.0.10 1.0.0
+./compile_nginx.sh 22.04 1.30.1 6.1.3 1.10.0 arm64
 ```
 
 This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
@@ -20,12 +20,12 @@ This will result in a Docker image which will contain NGINX + Passenger in separ
 You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal.
 
 ## Extraction
-To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions):
+To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions and CPU architecture):
 ```
-./extract_nginx.sh 18.04 1.20.1 6.0.10 1.0.0
+./extract_nginx.sh 22.04 1.30.1 6.1.3 1.10.0 arm64
 ```
 
-This will place the resulting tarballs in the `output` directory. For the previous extraction example, you will find one file under `output/binaries`: `ubuntu-18.04-nginx-1.0.0.tar.gz`.
+This will place the resulting tarballs in the `output.passenger` directory, or in the `output.passenger_enterprise` directory when compiling Passenger Enterprise (i.e. when the Passenger Enterprise license and source files are present). For the previous extraction example, you will find one file under `output.passenger/binaries`: `ubuntu-22.04-arm64-nginx-1.10.0.tar.gz`.
 
 ## Installation
 The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:

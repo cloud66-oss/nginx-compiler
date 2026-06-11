@@ -33,7 +33,10 @@ raise "No files created (#{library_name} #{library_version})" if files_created.e
 
 puts "Files created (#{library_name} #{library_version}):\n#{files_created.join("\n")}"
 
-deb_directory_name = "/usr/local/deb_sources/#{library_name}_#{library_version}_amd64"
+architecture = `dpkg --print-architecture`.strip
+raise "Failed to determine architecture from dpkg" unless $?.exitstatus == 0 && !architecture.empty?
+
+deb_directory_name = "/usr/local/deb_sources/#{library_name}_#{library_version}_#{architecture}"
 FileUtils.mkdir_p(deb_directory_name)
 
 files_created.each do |created_file| 
@@ -49,7 +52,7 @@ FileUtils.mkdir_p(File.join(deb_directory_name, "DEBIAN"))
 control_content = <<~CONTROL
 Package: #{library_name}
 Version: #{library_version}
-Architecture: amd64
+Architecture: #{architecture}
 Maintainer: Cloud 66 <eng@cloud66.com>
 Description: Cloud 66 #{description} for #{library_name}.
 CONTROL
