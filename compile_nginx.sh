@@ -18,15 +18,15 @@ fi
 case $1 in
     20.04)
 	OPERATING_SYSTEM_CODENAME=focal
-        OPENSSL_VERSION=1.1.1s
+        OPENSSL_VERSION=1.1.1w
 	;;
     22.04)
 	OPERATING_SYSTEM_CODENAME=jammy
-        OPENSSL_VERSION=3.0.15
+        OPENSSL_VERSION=3.0.20
 	;;
     24.04)
 	OPERATING_SYSTEM_CODENAME=noble
-        OPENSSL_VERSION=3.0.15
+        OPENSSL_VERSION=3.0.20
 	;;
     *)
 	echo "Unknown operating system"
