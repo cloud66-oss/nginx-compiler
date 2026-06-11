@@ -14,26 +14,26 @@ You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger +
 ./compile_nginx.sh 22.04 1.30.1 6.1.3 1.10.0 arm64
 ```
 
-This will result in a Docker image which will contain NGINX + Passenger in separate tarballs.
+This will result in a Docker image which will contain NGINX + Passenger in a single tarball.
 
 ### Passenger Enterprise
 You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal.
 
 ## Extraction
-To extract the tarballs from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions and CPU architecture):
+To extract the tarball from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions and CPU architecture):
 ```
 ./extract_nginx.sh 22.04 1.30.1 6.1.3 1.10.0 arm64
 ```
 
-This will place the resulting tarballs in the `output.passenger` directory, or in the `output.passenger_enterprise` directory when compiling Passenger Enterprise (i.e. when the Passenger Enterprise license and source files are present). For the previous extraction example, you will find one file under `output.passenger/binaries`: `ubuntu-22.04-arm64-nginx-1.10.0.tar.gz`.
+This will place the resulting tarball in the `output.passenger` directory, or in the `output.passenger_enterprise` directory when compiling Passenger Enterprise (i.e. when the Passenger Enterprise license and source files are present). For the previous extraction example, you will find one file under `output.passenger/binaries`: `ubuntu-22.04-arm64-nginx-1.10.0.tar.gz`.
 
 ## Installation
-The resulting tarballs from the extraction step can be uploaded to the target server and installed as follows:
+The resulting tarball from the extraction step can be uploaded to the target server and installed as follows:
 ```
 tar --no-same-owner -C / -zxvf <TARBALL>
 ```
 
-Doing this for the NGINX and Passenger tarballs will result in the following files under `/usr/local/debs`:
+Doing this will result in the following files under `/usr/local/debs`:
 ```
 $ find /usr/local/debs/
 /usr/local/debs/

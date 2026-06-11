@@ -21,4 +21,4 @@ if [[ -f "${PASSENGER_ENTERPRISE_LICENSE}" ]] && [[ -f "${PASSENGER_ENTERPRISE_T
     output="output.passenger_enterprise/binaries"
 fi
 mkdir -p $output
-docker run --rm --entrypoint cat cloud66-nginx:ubuntu-${1}-${5}-nginx-${2}-passenger-${3}-release-${4} /nginx.tar.gz > ${output}/ubuntu-${1}-${5}-nginx-${4}.tar.gz
+docker run --rm --platform "linux/${5}" --entrypoint cat cloud66-nginx:ubuntu-${1}-${5}-nginx-${2}-passenger-${3}-release-${4} /nginx.tar.gz > ${output}/ubuntu-${1}-${5}-nginx-${4}.tar.gz
