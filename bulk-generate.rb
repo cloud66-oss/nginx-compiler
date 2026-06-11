@@ -14,7 +14,6 @@ def build_and_extract(os_version, architecture, nginx_version, passenger_version
   expected_filenames = [
     "#{Dir.pwd}/#{output_directory}/binaries/ubuntu-#{os_version}-#{architecture}-nginx-#{release_version}.tar.gz",
   ]
-  expected_filenames << "#{Dir.pwd}/#{output_directory}/binaries/ubuntu-#{os_version}-#{architecture}-passenger-enterprise-#{release_version}.tar.gz" if include_passenger_enterprise?(passenger_version)
   if expected_filenames.all? { |expected_filename| File.exist?(expected_filename) }
     puts "  #{DateTime.now} - DONE"
   else
