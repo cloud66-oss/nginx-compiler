@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]]; then
+if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]] || [[ -z "$4" ]] || [[ -z "$5" ]]; then
     echo "FATAL: Expected ARGS:"
     echo "1. os-version: 20.04"
     echo "2. nginx-version: 1.18.0"
     echo "3. passenger-version: 6.0.10"
     echo "4. release-version: 1.0.0"
+    echo "5. architecture: amd64"
     echo ""
     echo "Usage Examples:"
-    echo "./compile_nginx.sh 20.04 1.18.0 6.0.10 1.0.0"
+    echo "./compile_nginx.sh 20.04 1.18.0 6.0.10 1.0.0 amd64"
     exit 22
 fi
 
@@ -33,20 +34,32 @@ case $1 in
 	;;
 esac
 
+case $5 in
+    amd64|arm64)
+        DOCKER_PLATFORM="linux/$5"
+        ;;
+    *)
+	echo "Unknown architecture (expected amd64 or arm64)"
+	exit 1
+	;;
+esac
+
 INCLUDE_PASSENGER_ENTERPRISE=false
+OUTPUT_DIRECTORY="output.passenger"
 PASSENGER_ENTERPRISE_LICENSE="passenger_enterprise/passenger-enterprise-license"
 PASSENGER_ENTERPRISE_TARBALL="passenger_enterprise/passenger-enterprise-server-${3}.tar.gz"
 if [[ -f "${PASSENGER_ENTERPRISE_LICENSE}" ]] && [[ -f "${PASSENGER_ENTERPRISE_TARBALL}" ]]; then
     INCLUDE_PASSENGER_ENTERPRISE=true
+    OUTPUT_DIRECTORY="output.passenger_enterprise"
 fi
 
 # create output build logs folder
-mkdir -p output/build_logs
+mkdir -p $OUTPUT_DIRECTORY/build_logs
 # define build log file
-build_log_file="output/build_logs/build-ubuntu-$1-nginx-$2-passenger-$3-release-$4.log"
+build_log_file="$OUTPUT_DIRECTORY/build_logs/build-ubuntu-$1-$5-nginx-$2-passenger-$3-release-$4.log"
 # define the next tag
-tag="cloud66-nginx:ubuntu-$1-nginx-$2-passenger-$3-release-$4"
+tag="cloud66-nginx:ubuntu-$1-$5-nginx-$2-passenger-$3-release-$4"
 # remove previous build
 docker rmi --force $tag >/dev/null 2>&1
 # build new version
-docker build --rm --build-arg OPERATING_SYSTEM_VERSION=$1 --build-arg OPERATING_SYSTEM_CODENAME=$OPERATING_SYSTEM_CODENAME --build-arg NGINX_VERSION=$2 --build-arg PASSENGER_VERSION=$3 --build-arg RELEASE_VERSION=$4 --build-arg INCLUDE_PASSENGER_ENTERPRISE=$INCLUDE_PASSENGER_ENTERPRISE --build-arg OPENSSL_VERSION=$OPENSSL_VERSION --tag $tag --platform "linux/amd64" . >$build_log_file 2>&1
+docker build --rm --build-arg OPERATING_SYSTEM_VERSION=$1 --build-arg OPERATING_SYSTEM_CODENAME=$OPERATING_SYSTEM_CODENAME --build-arg NGINX_VERSION=$2 --build-arg PASSENGER_VERSION=$3 --build-arg RELEASE_VERSION=$4 --build-arg INCLUDE_PASSENGER_ENTERPRISE=$INCLUDE_PASSENGER_ENTERPRISE --build-arg OPENSSL_VERSION=$OPENSSL_VERSION --tag $tag --platform "$DOCKER_PLATFORM" . >$build_log_file 2>&1

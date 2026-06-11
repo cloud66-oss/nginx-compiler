@@ -36,6 +36,10 @@ ARG RTMP_MODULE_VERSION=1.2.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
 ARG NGX_MRUBY_VERSION=2.6.0
+# NOTE: mruby-redis (an ngx_mruby gem) clones hiredis from master UNPINNED at build time; we pin it by pre-seeding
+# the clone directory (the gem skips cloning when the directory exists). NOT v1.4.0: it ships an ffc.h whose
+# FFC_DEBUG guard fails to compile under -Wundef -Werror; bump once that's fixed upstream.
+ARG HIREDIS_VERSION=1.3.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -61,10 +65,13 @@ RUN mkdir -p /usr/local/build
 RUN mkdir -p /usr/local/deb_sources
 RUN mkdir -p /usr/local/debs
 
+# NOTE: pkg-config rather than pkgconf: on Ubuntu 20.04 pkgconf Breaks pkg-config while shipping neither
+# /usr/bin/pkg-config nor pkg.m4 (both needed by the ModSecurity build); on 22.04/24.04 pkg-config provides the
+# same files pkgconf would (on 24.04 it is a transitional package that installs pkgconf underneath)
 RUN apt-get update &&\
     apt-get install -y software-properties-common &&\
     apt-get update &&\
-    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre2-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkgconf ruby-full ruby-dev vim wget zlib1g-dev
+    apt-get install -y apt-utils autoconf build-essential curl git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpam0g-dev libpcre2-dev libperl-dev libtool libxml2-dev libxslt-dev libyajl-dev pkg-config ruby-full ruby-dev vim wget zlib1g-dev
 
 # NGINX seems to require a specific version of automake, but only sometimes...
 RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P /usr/local/sources &&\
@@ -73,6 +80,11 @@ RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P
     ./configure &&\
     make &&\
     make install
+
+# NOTE: the aclocal above (prefix /usr/local) doesn't search /usr/share/aclocal, so without this, system m4 macros
+# (e.g. pkg.m4) don't expand when a component regenerates its build system (e.g. ModSecurity's build.sh), which
+# silently breaks its pkg-config-based library detection
+ENV ACLOCAL_PATH=/usr/share/aclocal
 
 ADD current_state.sh /usr/local/bin
 ADD generate_deb.rb /usr/local/bin
@@ -99,6 +111,10 @@ RUN tar -zxf /usr/local/sources/openssl-${OPENSSL_VERSION}.tar.gz &&\
 RUN echo "/usr/lib" > /etc/ld.so.conf.d/openssl-${OPENSSL_VERSION}.conf
 RUN ldconfig
 RUN rm -rf /usr/certs && cp -r /etc/ssl/certs /usr/certs
+# NOTE: in later stages this deb UPGRADES the OS openssl package, so dpkg deletes the old package's files that we
+# don't ship - including /usr/lib/ssl/certs, the trust store of the OS libcrypto (which e.g. wget on Ubuntu 24.04
+# still loads). Ship the same symlink the OS package had so TLS verification keeps working.
+RUN mkdir -p /usr/lib/ssl && ln -sfn /etc/ssl/certs /usr/lib/ssl/certs
 
 RUN current_state.sh after
 RUN generate_deb.rb openssl ${OPENSSL_VERSION} binary
@@ -364,6 +380,7 @@ ARG RTMP_MODULE_VERSION
 ARG UPSTREAM_FAIR_MODULE_VERSION
 ARG HTTP_GEOIP2_MODULE_VERSION
 ARG NGX_MRUBY_VERSION
+ARG HIREDIS_VERSION
 
 ARG NGINX_DEB_VERSION
 
@@ -460,10 +477,15 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz
 
+# NOTE: the hiredis pre-seed below pins what mruby-redis would otherwise clone unpinned from master (see HIREDIS_VERSION)
 RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
     ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' &&\
+    wget https://github.com/redis/hiredis/archive/refs/tags/v${HIREDIS_VERSION}.tar.gz -P /usr/local/sources &&\
+    tar zxf /usr/local/sources/v${HIREDIS_VERSION}.tar.gz &&\
+    mkdir -p mruby/build/host/mrbgems/mruby-redis &&\
+    mv hiredis-${HIREDIS_VERSION} mruby/build/host/mrbgems/mruby-redis/hiredis &&\
     make build_mruby &&\
     make generate_gems_config
 
@@ -705,17 +727,17 @@ RUN mkdir -p ${DEB_DIRECTORY}
 RUN mkdir -p ${DEB_DIRECTORY}/prerequisites
 RUN mkdir -p ${DEB_DIRECTORY}/nginx
 
-RUN mv /usr/local/debs/modsecurity_${MODSECURITY_DEB_VERSION}_amd64.deb \
-       /usr/local/debs/openresty-luajit_${LUAJIT2_DEB_VERSION}_amd64.deb \
-       /usr/local/debs/openresty-lua-core_${LUA_RESTY_CORE_DEB_VERSION}_amd64.deb \
-       /usr/local/debs/openresty-lua-lrucache_${LUA_RESTY_LRUCACHE_DEB_VERSION}_amd64.deb \
+RUN mv /usr/local/debs/modsecurity_${MODSECURITY_DEB_VERSION}_*.deb \
+       /usr/local/debs/openresty-luajit_${LUAJIT2_DEB_VERSION}_*.deb \
+       /usr/local/debs/openresty-lua-core_${LUA_RESTY_CORE_DEB_VERSION}_*.deb \
+       /usr/local/debs/openresty-lua-lrucache_${LUA_RESTY_LRUCACHE_DEB_VERSION}_*.deb \
        ${DEB_DIRECTORY}/prerequisites
-RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/nginx
+RUN mv /usr/local/debs/nginx_${NGINX_DEB_VERSION}_*.deb ${DEB_DIRECTORY}/nginx
 
 RUN mkdir -p ${DEB_DIRECTORY}/passenger
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-module
-RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger
-RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-module
+RUN mv /usr/local/debs/passenger_${PASSENGER_DEB_VERSION}_*.deb ${DEB_DIRECTORY}/passenger
+RUN mv /usr/local/debs/nginx-module-http-passenger_${NGINX_PASSENGER_MODULE_DEB_VERSION}_*.deb ${DEB_DIRECTORY}/passenger-module
 
 ######################################################################################################################################################################################################################################
 
@@ -726,8 +748,8 @@ COPY --from=passenger-enterprise /usr/local/debs /usr/local/debs
 
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise
 RUN mkdir -p ${DEB_DIRECTORY}/passenger-enterprise-module
-RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise
-RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_amd64.deb ${DEB_DIRECTORY}/passenger-enterprise-module
+RUN mv /usr/local/debs/passenger-enterprise_${PASSENGER_DEB_VERSION}_*.deb ${DEB_DIRECTORY}/passenger-enterprise
+RUN mv /usr/local/debs/nginx-module-http-passenger-enterprise_${NGINX_PASSENGER_MODULE_DEB_VERSION}_*.deb ${DEB_DIRECTORY}/passenger-enterprise-module
 
 FROM prefinal-base AS prefinal-passenger-enterprise-false
 
