@@ -99,30 +99,16 @@ WORKDIR /usr/local/build
 
 RUN wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -P /usr/local/sources
 
-# NOTE: also purge libssl-dev: on Ubuntu 26.04 libcurl4-openssl-dev Depends on it (older releases only Suggest it), so
-#       /usr/include/openssl would pre-exist the "before" snapshot and this deb would silently lose its header files -
-#       NGINX/Passenger would then be built against the OS OpenSSL and "nginx -V" would no longer show "running with"
-RUN dpkg --purge --force-all openssl libssl-dev
-RUN current_state.sh before
-
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
+# NOTE: private prefix (not /usr): consuming stages COPY /opt/openssl in and expose it through dev symlinks in
+#       /usr/local (see the nginx stage NOTE), so this build never collides with the OS openssl/libssl-dev packages
+#       (libssl-dev is a hard Depends of libcurl4-openssl-dev on Ubuntu 26.04) - no deb, no purges, no snapshot needed
+# NOTE: --libdir=lib because OpenSSL 3 defaults to lib64 on 64-bit Linux; install_sw skips the (slow) man pages
 RUN tar -zxf /usr/local/sources/openssl-${OPENSSL_VERSION}.tar.gz &&\
     cd openssl-${OPENSSL_VERSION} &&\
-    ./config --libdir=/usr/lib --prefix=/usr --openssldir=/usr shared zlib &&\
+    ./config --prefix=/opt/openssl --openssldir=/opt/openssl/ssl --libdir=lib shared zlib &&\
     make &&\
-    make install
-
-RUN echo "/usr/lib" > /etc/ld.so.conf.d/openssl-${OPENSSL_VERSION}.conf
-RUN ldconfig
-RUN rm -rf /usr/certs && cp -r /etc/ssl/certs /usr/certs
-# NOTE: in later stages this deb UPGRADES the OS openssl package, so dpkg deletes the old package's files that we
-# don't ship - including /usr/lib/ssl/certs, the trust store of the OS libcrypto (which e.g. wget on Ubuntu 24.04
-# still loads). Ship the same symlink the OS package had so TLS verification keeps working.
-RUN mkdir -p /usr/lib/ssl && ln -sfn /etc/ssl/certs /usr/lib/ssl/certs
-
-RUN current_state.sh after
-RUN generate_deb.rb openssl ${OPENSSL_VERSION} binary
-RUN generate_deb.rb openssl ${OPENSSL_VERSION} source
+    make install_sw
 
 ######################################################################################################################################################################################################################################
 
@@ -303,10 +289,12 @@ ADD setup_passenger.rb /usr/local/bin
 # NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
 RUN apt-get install -y apache2 apache2-dev
 
-COPY --from=openssl /usr/local/debs /usr/local/debs
-# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
-RUN dpkg --purge --force-all libssl-dev
-RUN dpkg -i /usr/local/debs/*.deb
+COPY --from=openssl /opt/openssl /opt/openssl
+# NOTE: dev symlinks into /usr/local make Passenger's own build (which takes no -I/-L flags) compile/link against the
+#       custom OpenSSL while still loading the OS libssl at run time (see the nginx stage NOTE for the full story)
+RUN ln -s /opt/openssl/include/openssl /usr/local/include/openssl &&\
+    mkdir -p /usr/local/lib/$(gcc -print-multiarch) &&\
+    ln -s /opt/openssl/lib/libssl.so /opt/openssl/lib/libcrypto.so /usr/local/lib/$(gcc -print-multiarch)/
 
 # NOTE: directory is called passenger-release-${PASSENGER_VERSION}
 # NOTE: use "/usr/bin/env ruby" as shebang in Passenger executables because it's always available on C66 systems
@@ -336,10 +324,12 @@ ADD setup_passenger.rb /usr/local/bin
 # NOTE: prerequisites for the apache module - compilation process installs everything, unfortunately
 RUN apt-get install -y apache2 apache2-dev
 
-COPY --from=openssl /usr/local/debs /usr/local/debs
-# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
-RUN dpkg --purge --force-all libssl-dev
-RUN dpkg -i /usr/local/debs/*.deb
+COPY --from=openssl /opt/openssl /opt/openssl
+# NOTE: dev symlinks into /usr/local make Passenger's own build (which takes no -I/-L flags) compile/link against the
+#       custom OpenSSL while still loading the OS libssl at run time (see the nginx stage NOTE for the full story)
+RUN ln -s /opt/openssl/include/openssl /usr/local/include/openssl &&\
+    mkdir -p /usr/local/lib/$(gcc -print-multiarch) &&\
+    ln -s /opt/openssl/lib/libssl.so /opt/openssl/lib/libcrypto.so /usr/local/lib/$(gcc -print-multiarch)/
 
 COPY passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz /usr/local/sources
 
@@ -394,7 +384,6 @@ ARG NGINX_DEB_VERSION
 
 WORKDIR /usr/local/build
 
-COPY --from=openssl /usr/local/debs /usr/local/debs
 COPY --from=pcre2 /usr/local/debs /usr/local/debs
 COPY --from=zlib /usr/local/debs /usr/local/debs
 COPY --from=modsecurity /usr/local/debs /usr/local/debs
@@ -403,16 +392,21 @@ COPY --from=lua-resty-core /usr/local/debs /usr/local/debs
 COPY --from=lua-resty-lrucache /usr/local/debs /usr/local/debs
 COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 COPY --from=libgd /usr/local/debs /usr/local/debs
-# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
-RUN dpkg --purge --force-all libssl-dev
 RUN dpkg -i /usr/local/debs/*.deb
 
-ADD include_modules.rb /usr/local/bin
+COPY --from=openssl /opt/openssl /opt/openssl
+# NOTE: expose the custom OpenSSL via the default compiler/linker search paths: /usr/local/include precedes
+#       /usr/include, and /usr/local/lib/<multiarch> is ld's first search dir, preceding /usr/lib/<multiarch> (where
+#       Ubuntu 26.04's libssl-dev lives) - so NGINX's configure tests, the mruby gems, and the Passenger module builds
+#       (which inherit FROM this stage) all pick it up with no flags. Deliberately NOT the CPATH/LIBRARY_PATH env vars:
+#       vendored Makefiles repurpose those names (hiredis installs its libs to $(PREFIX)/$(LIBRARY_PATH), so env
+#       LIBRARY_PATH breaks the mruby-redis build). Unversioned dev symlinks only and no rpath: the runtime soname
+#       lookup still resolves to the OS libssl, which keeps "built with X (running with Y)" working in nginx -V
+RUN ln -s /opt/openssl/include/openssl /usr/local/include/openssl &&\
+    mkdir -p /usr/local/lib/$(gcc -print-multiarch) &&\
+    ln -s /opt/openssl/lib/libssl.so /opt/openssl/lib/libcrypto.so /usr/local/lib/$(gcc -print-multiarch)/
 
-# NOTE: required to use the new openssl version that is installed in the above debs
-# TODO: when using a custom openssl directory, configuring passenger fails with -lcrypto fails and wasn't able to figure it out just yet (fixing custom include using CPATH worked, unlike with-cc-opt)
-# ENV PATH="${PATH}:/usr/local/ssl/bin"
-# ENV CPATH=/usr/local/ssl/include
+ADD include_modules.rb /usr/local/bin
 
 # MODULE SOURCES
 # directory name: ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}
