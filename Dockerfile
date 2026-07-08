@@ -99,7 +99,10 @@ WORKDIR /usr/local/build
 
 RUN wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -P /usr/local/sources
 
-RUN dpkg --purge --force-all openssl
+# NOTE: also purge libssl-dev: on Ubuntu 26.04 libcurl4-openssl-dev Depends on it (older releases only Suggest it), so
+#       /usr/include/openssl would pre-exist the "before" snapshot and this deb would silently lose its header files -
+#       NGINX/Passenger would then be built against the OS OpenSSL and "nginx -V" would no longer show "running with"
+RUN dpkg --purge --force-all openssl libssl-dev
 RUN current_state.sh before
 
 # Required for NGINX: https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source
@@ -301,6 +304,8 @@ ADD setup_passenger.rb /usr/local/bin
 RUN apt-get install -y apache2 apache2-dev
 
 COPY --from=openssl /usr/local/debs /usr/local/debs
+# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
+RUN dpkg --purge --force-all libssl-dev
 RUN dpkg -i /usr/local/debs/*.deb
 
 # NOTE: directory is called passenger-release-${PASSENGER_VERSION}
@@ -332,6 +337,8 @@ ADD setup_passenger.rb /usr/local/bin
 RUN apt-get install -y apache2 apache2-dev
 
 COPY --from=openssl /usr/local/debs /usr/local/debs
+# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
+RUN dpkg --purge --force-all libssl-dev
 RUN dpkg -i /usr/local/debs/*.deb
 
 COPY passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz /usr/local/sources
@@ -396,6 +403,8 @@ COPY --from=lua-resty-core /usr/local/debs /usr/local/debs
 COPY --from=lua-resty-lrucache /usr/local/debs /usr/local/debs
 COPY --from=libmaxminddb /usr/local/debs /usr/local/debs
 COPY --from=libgd /usr/local/debs /usr/local/debs
+# NOTE: purge libssl-dev (present on Ubuntu 26.04 bases) so the openssl deb's headers don't conflict with it (see openssl stage NOTE)
+RUN dpkg --purge --force-all libssl-dev
 RUN dpkg -i /usr/local/debs/*.deb
 
 ADD include_modules.rb /usr/local/bin
@@ -443,8 +452,10 @@ ENV LUAJIT_LIB=/usr/local/lib
 ENV LUAJIT_INC=/usr/local/include/luajit-${LUAJIT2_VERSION}
 
 # NOTE: define NGINX configure options here because mruby also needs them
+# NOTE: -Wno-error=discarded-qualifiers: NGINX compiles everything with -Werror; Ubuntu 26.04's glibc (2.43) makes strstr & co
+#       return const char* under _GNU_SOURCE/C23, tripping old modules (nchan) that assign the result to char*
 ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
---with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2\" \
+--with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2 -Wno-error=discarded-qualifiers\" \
 --with-ld-opt=\"-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC\" \
 --prefix=/usr/share/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -479,6 +490,8 @@ RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/
     tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz
 
 # NOTE: the hiredis pre-seed below pins what mruby-redis would otherwise clone unpinned from master (see HIREDIS_VERSION)
+# NOTE: NGX_MRUBY_CFLAGS: GCC >= 14 (Ubuntu 26.04 ships GCC 15) promotes these legacy-C warnings to hard errors, which
+#       breaks mruby-acme-client (old CRuby openssl port); downgrade them back to warnings. Severity-only, no-op on older GCC.
 RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
@@ -487,7 +500,7 @@ RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY
     tar zxf /usr/local/sources/v${HIREDIS_VERSION}.tar.gz &&\
     mkdir -p mruby/build/host/mrbgems/mruby-redis &&\
     mv hiredis-${HIREDIS_VERSION} mruby/build/host/mrbgems/mruby-redis/hiredis &&\
-    make build_mruby &&\
+    NGX_MRUBY_CFLAGS="-Wno-error=incompatible-pointer-types -Wno-error=int-conversion" make build_mruby &&\
     make generate_gems_config
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
@@ -582,7 +595,9 @@ RUN current_state.sh after
 RUN rm -rf /usr/local/debs/*
 # NOTE: The general approach is that if the OS offers the package, then we should use the OS package (e.g. libmaxminddb/libpcre3/libgd3),
 #       and package it ourselves if it doesn't and doesn't conflict with any package (e.g. modsecurity/openresty-lua-core).
-RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre3, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libperl-dev, libyajl-dev"}'
+# NOTE: libpcre2-8-0 rather than libpcre3: nothing we ship links pcre1 (NGINX statically bundles pcre2, libmodsecurity
+#       links libpcre2-8.so.0), and the pcre3 package was removed from Ubuntu 26.04
+RUN generate_deb.rb nginx ${NGINX_DEB_VERSION} binary '{"Depends":"libcurl4-openssl-dev, libgd3, libgeoip-dev, libmaxminddb-dev, libpcre2-8-0, libxml2-dev, libxslt-dev, modsecurity, openresty-lua-core, openresty-lua-lrucache, openresty-luajit, libperl-dev, libyajl-dev"}'
 
 ######################################################################################################################################################################################################################################
 

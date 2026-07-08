@@ -28,6 +28,10 @@ case $1 in
 	OPERATING_SYSTEM_CODENAME=noble
         OPENSSL_VERSION=3.0.20
 	;;
+    26.04)
+	OPERATING_SYSTEM_CODENAME=resolute
+        OPENSSL_VERSION=3.5.7
+	;;
     *)
 	echo "Unknown operating system"
 	exit 1
