@@ -15,7 +15,7 @@ ARG AUTOMAKE_VERSION=1.17
 ARG PCRE2_VERSION=10.37
 ARG ZLIB_VERSION=1.3.1
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.13
+ARG MODSECURITY_VERSION=3.0.15
 ARG LUAJIT2_VERSION=2.1
 ARG LUAJIT2_PACKAGE_VERSION=2.1-20240815
 ARG LUA_RESTY_CORE_VERSION=0.1.30
@@ -23,7 +23,7 @@ ARG LUA_RESTY_LRUCACHE_VERSION=0.14
 ARG LIBMAXMINDDB_VERSION=1.11.0
 
 # NOTE: these are updated as required (NGINX modules)
-ARG MODSECURITY_MODULE_VERSION=1.0.3
+ARG MODSECURITY_MODULE_VERSION=1.0.4
 ARG HEADERS_MORE_MODULE_VERSION=0.37
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.5
 ARG CACHE_PURGE_MODULE_VERSION=2.5.3
@@ -263,7 +263,7 @@ RUN apt-get purge -y libgeoip-dev
 RUN current_state.sh before
 
 # Required for modsecurity-nginx: https://www.nginx.com/blog/compiling-and-installing-modsecurity-for-open-source-nginx/
-RUN wget https://github.com/SpiderLabs/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
+RUN wget https://github.com/owasp-modsecurity/ModSecurity/releases/download/v${MODSECURITY_VERSION}/modsecurity-v${MODSECURITY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/modsecurity-v${MODSECURITY_VERSION}.tar.gz &&\
     cd modsecurity-v${MODSECURITY_VERSION} &&\
     ./build.sh &&\
@@ -409,8 +409,8 @@ RUN ln -s /opt/openssl/include/openssl /usr/local/include/openssl &&\
 ADD include_modules.rb /usr/local/bin
 
 # MODULE SOURCES
-# directory name: modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}
-RUN wget https://github.com/SpiderLabs/ModSecurity-nginx/releases/download/v${MODSECURITY_MODULE_VERSION}/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz
+# directory name: ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}
+RUN wget https://github.com/owasp-modsecurity/ModSecurity-nginx/releases/download/v${MODSECURITY_MODULE_VERSION}/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}.tar.gz
 # directory name: headers-more-nginx-module-${HEADERS_MORE_MODULE_VERSION}
 RUN wget https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v${HEADERS_MORE_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${HEADERS_MORE_MODULE_VERSION}.tar.gz
 # directory name: ngx_http_auth_pam_module-${HTTP_AUTH_PAM_MODULE_VERSION}
@@ -448,8 +448,15 @@ ENV LUAJIT_INC=/usr/local/include/luajit-${LUAJIT2_VERSION}
 # NOTE: define NGINX configure options here because mruby also needs them
 # NOTE: -Wno-error=discarded-qualifiers: NGINX compiles everything with -Werror; Ubuntu 26.04's glibc (2.43) makes strstr & co
 #       return const char* under _GNU_SOURCE/C23, tripping old modules (nchan) that assign the result to char*
+# NOTE: -Wno-unterminated-string-initialization (plain -Wno-, NOT -Wno-error=): GCC 15 (Ubuntu 26.04) warns on the
+#       deliberately-unterminated HPACK literals in NGINX 1.24's http/v2 module (fixed upstream in 1.27.4); GCC <= 14
+#       hard-errors on unknown -Wno-error= options but silently ignores unknown plain -Wno- ones, so only this form
+#       works across all OS versions we build
+# NOTE: -Wno-error=incompatible-pointer-types: GCC 15 defaults to C23, where an empty parameter list means (void), so
+#       nchan's K&R-style empty_handler() no longer matches ngx_http_cleanup_pt (void(*)(void*)); GCC >= 14 makes this
+#       an error by default - demote back to warning (severity-only, no-op on older GCC)
 ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
---with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2 -Wno-error=discarded-qualifiers\" \
+--with-cc-opt=\"-g -O2 -fdebug-prefix-map=/usr/local/build/nginx-${NGINX_VERSION}=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -D_FORTIFY_SOURCE=2 -Wno-error=discarded-qualifiers -Wno-error=incompatible-pointer-types -Wno-unterminated-string-initialization\" \
 --with-ld-opt=\"-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -fPIC\" \
 --prefix=/usr/share/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -539,7 +546,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/nginx-upstream-fair-${UPSTREAM_FAIR_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_http_geoip2_module-${HTTP_GEOIP2_MODULE_VERSION} \
         --add-module=/usr/local/build/ngx_mruby-${NGX_MRUBY_VERSION} \
-        --add-module=/usr/local/build/modsecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
+        --add-module=/usr/local/build/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
     chmod +x ./real_configure &&\
     ./real_configure &&\
     make &&\

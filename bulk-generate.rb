@@ -4,7 +4,7 @@ RELEASE_VERSION = ARGV[0]
 OS_VERSIONS = %w(20.04 22.04 24.04 26.04)
 ARCHITECTURES = %w(amd64 arm64)
 NGINX_VERSIONS = %w(1.24.0)
-PASSENGER_VERSIONS = %w(6.0.23)
+PASSENGER_VERSIONS = %w(6.0.27)
 
 raise "Must provide release number as first argument" if RELEASE_VERSION.nil?
 
