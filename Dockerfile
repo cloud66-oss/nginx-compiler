@@ -15,21 +15,21 @@ ARG AUTOMAKE_VERSION=1.18.1
 ARG PCRE2_VERSION=10.47
 ARG ZLIB_VERSION=1.3.2
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.15
+ARG MODSECURITY_VERSION=3.0.16
 ARG LUAJIT2_VERSION=2.1
-ARG LUAJIT2_PACKAGE_VERSION=2.1-20260415
+ARG LUAJIT2_PACKAGE_VERSION=2.1-20260724
 ARG LUA_RESTY_CORE_VERSION=0.1.32
 ARG LUA_RESTY_LRUCACHE_VERSION=0.15
 ARG LIBMAXMINDDB_VERSION=1.13.3
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.4
-ARG HEADERS_MORE_MODULE_VERSION=0.39
+ARG HEADERS_MORE_MODULE_VERSION=0.40
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.5
 ARG CACHE_PURGE_MODULE_VERSION=3.0.2
 ARG DAV_EXT_MODULE_VERSION=3.0.0
 ARG DEVEL_KIT_MODULE_VERSION=0.3.4
-ARG ECHO_MODULE_VERSION=0.64
+ARG ECHO_MODULE_VERSION=0.65
 ARG FANCYINDEX_MODULE_VERSION=0.6.0
 ARG NCHAN_MODULE_VERSION=1.3.8
 ARG LUA_MODULE_VERSION=0.10.29
@@ -38,9 +38,9 @@ ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
 ARG NGX_MRUBY_VERSION=2.7.0
 # NOTE: mruby-redis (an ngx_mruby gem) clones hiredis from master UNPINNED at build time; we pin it by pre-seeding
-# the clone directory (the gem skips cloning when the directory exists). NOT v1.4.0: it ships an ffc.h whose
-# FFC_DEBUG guard fails to compile under -Wundef -Werror; bump once that's fixed upstream.
-ARG HIREDIS_VERSION=1.3.0
+# the clone directory (the gem skips cloning when the directory exists). NOT v1.4.x: it ships an ffc.h whose
+# FFC_DEBUG guard fails to compile under -Wundef -Werror (still present in v1.4.1); bump once that's fixed upstream.
+ARG HIREDIS_VERSION=1.3.1
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
