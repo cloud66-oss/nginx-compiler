@@ -11,36 +11,39 @@ ARG RELEASE_VERSION=*passed-in*
 ARG OPENSSL_VERSION=*passed-in*
 
 # NOTE: these are updated as required (build dependencies)
-ARG AUTOMAKE_VERSION=1.18.1
-ARG PCRE2_VERSION=10.47
-ARG ZLIB_VERSION=1.3.2
+ARG AUTOMAKE_VERSION=1.20
+ARG PCRE2_VERSION=10.49
+ARG ZLIB_VERSION=1.4
 ARG LIBGD_VERSION=2.3.3
-ARG MODSECURITY_VERSION=3.0.16
+ARG MODSECURITY_VERSION=3.0.17
 ARG LUAJIT2_VERSION=2.1
-ARG LUAJIT2_PACKAGE_VERSION=2.1-20260724
-ARG LUA_RESTY_CORE_VERSION=0.1.32
+ARG LUAJIT2_PACKAGE_VERSION=2.1-20261107
+ARG LUA_RESTY_CORE_VERSION=0.1.32R1
 ARG LUA_RESTY_LRUCACHE_VERSION=0.15
-ARG LIBMAXMINDDB_VERSION=1.13.3
+ARG LIBMAXMINDDB_VERSION=1.14.1
 
 # NOTE: these are updated as required (NGINX modules)
 ARG MODSECURITY_MODULE_VERSION=1.0.4
-ARG HEADERS_MORE_MODULE_VERSION=0.40
+ARG HEADERS_MORE_MODULE_VERSION=0.41
 ARG HTTP_AUTH_PAM_MODULE_VERSION=1.5.5
-ARG CACHE_PURGE_MODULE_VERSION=3.0.2
+ARG CACHE_PURGE_MODULE_VERSION=3.0.4
 ARG DAV_EXT_MODULE_VERSION=3.0.0
-ARG DEVEL_KIT_MODULE_VERSION=0.3.4
-ARG ECHO_MODULE_VERSION=0.65
+ARG DEVEL_KIT_MODULE_VERSION=0.3.6
+ARG ECHO_MODULE_VERSION=0.66
 ARG FANCYINDEX_MODULE_VERSION=0.6.0
 ARG NCHAN_MODULE_VERSION=1.3.8
-ARG LUA_MODULE_VERSION=0.10.29
+# NOTE: LUA_MODULE_VERSION and LUA_RESTY_CORE_VERSION are a matched pair: resty-core's base.lua errors at run time unless
+# ngx_lua_version is exactly the one it expects (0.1.32Rx wants 0.10.29Rx); every newer resty-core is still a release
+# candidate, so bump both together once a final one ships
+ARG LUA_MODULE_VERSION=0.10.29R2
 ARG RTMP_MODULE_VERSION=1.2.2
 ARG UPSTREAM_FAIR_MODULE_VERSION=0.1.3
 ARG HTTP_GEOIP2_MODULE_VERSION=3.4
-ARG NGX_MRUBY_VERSION=2.7.0
-# NOTE: mruby-redis (an ngx_mruby gem) clones hiredis from master UNPINNED at build time; we pin it by pre-seeding
-# the clone directory (the gem skips cloning when the directory exists). NOT v1.4.x: it ships an ffc.h whose
-# FFC_DEBUG guard fails to compile under -Wundef -Werror (still present in v1.4.1); bump once that's fixed upstream.
-ARG HIREDIS_VERSION=1.3.1
+ARG NGX_MRUBY_VERSION=2.7.5
+# NOTE: hiredis is cloned and built by mruby-redis (an ngx_mruby gem); MRUBY_REDIS_HIREDIS_VERSION (see build_mruby) pins
+# it to this tag. hiredis >= 1.4.0's ffc.h trips mruby's -Wundef ("#if FFC_DEBUG"), but the gem builds hiredis with
+# USE_WERROR=0, so that is only a warning.
+ARG HIREDIS_VERSION=1.5.0
 
 # NOTE: these are debian package versions derived from the above (for packages that will be publicly published)
 # NOTE: tried using debian epoch BUT it looks like there's a bug in apt where if the package name contains a ':' character, it doesn't install the package (says nothing to be done)
@@ -79,7 +82,7 @@ RUN wget https://ftp.gnu.org/gnu/automake/automake-${AUTOMAKE_VERSION}.tar.gz -P
     tar zxf /usr/local/sources/automake-${AUTOMAKE_VERSION}.tar.gz &&\
     cd automake-${AUTOMAKE_VERSION} &&\
     ./configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 # NOTE: the aclocal above (prefix /usr/local) doesn't search /usr/share/aclocal, so without this, system m4 macros
@@ -107,7 +110,7 @@ RUN wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz -P /us
 RUN tar -zxf /usr/local/sources/openssl-${OPENSSL_VERSION}.tar.gz &&\
     cd openssl-${OPENSSL_VERSION} &&\
     ./config --prefix=/opt/openssl --openssldir=/opt/openssl/ssl --libdir=lib shared zlib &&\
-    make &&\
+    make -j$(nproc) &&\
     make install_sw
 
 ######################################################################################################################################################################################################################################
@@ -123,7 +126,7 @@ RUN wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_V
     tar -zxf /usr/local/sources/pcre2-${PCRE2_VERSION}.tar.gz &&\
     cd pcre2-${PCRE2_VERSION} &&\
     ./configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -143,7 +146,7 @@ RUN wget https://github.com/madler/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.g
     tar -zxf /usr/local/sources/v${ZLIB_VERSION}.tar.gz &&\
     cd zlib-${ZLIB_VERSION} &&\
     ./configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -163,7 +166,7 @@ RUN wget https://github.com/libgd/libgd/releases/download/gd-${LIBGD_VERSION}/li
     tar -zxf /usr/local/sources/libgd-${LIBGD_VERSION}.tar.gz &&\
     cd libgd-${LIBGD_VERSION} &&\
     ./configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -182,7 +185,7 @@ RUN current_state.sh before
 RUN wget https://github.com/openresty/luajit2/archive/refs/tags/v${LUAJIT2_PACKAGE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${LUAJIT2_PACKAGE_VERSION}.tar.gz &&\
     cd luajit2-${LUAJIT2_PACKAGE_VERSION} &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -201,7 +204,7 @@ RUN current_state.sh before
 RUN wget https://github.com/openresty/lua-resty-core/archive/refs/tags/v${LUA_RESTY_CORE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${LUA_RESTY_CORE_VERSION}.tar.gz &&\
     cd lua-resty-core-${LUA_RESTY_CORE_VERSION} &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -220,7 +223,7 @@ RUN current_state.sh before
 RUN wget https://github.com/openresty/lua-resty-lrucache/archive/refs/tags/v${LUA_RESTY_LRUCACHE_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${LUA_RESTY_LRUCACHE_VERSION}.tar.gz &&\
     cd lua-resty-lrucache-${LUA_RESTY_LRUCACHE_VERSION} &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -239,7 +242,7 @@ RUN wget https://github.com/maxmind/libmaxminddb/releases/download/${LIBMAXMINDD
     tar zxf /usr/local/sources/libmaxminddb-${LIBMAXMINDDB_VERSION}.tar.gz &&\
     cd libmaxminddb-${LIBMAXMINDDB_VERSION} &&\
     ./configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -268,7 +271,7 @@ RUN wget https://github.com/owasp-modsecurity/ModSecurity/releases/download/v${M
     cd modsecurity-v${MODSECURITY_VERSION} &&\
     ./build.sh &&\
     ./configure --with-maxmind=/usr/local --with-pcre2 &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 RUN current_state.sh after
@@ -331,7 +334,13 @@ RUN ln -s /opt/openssl/include/openssl /usr/local/include/openssl &&\
     mkdir -p /usr/local/lib/$(gcc -print-multiarch) &&\
     ln -s /opt/openssl/lib/libssl.so /opt/openssl/lib/libcrypto.so /usr/local/lib/$(gcc -print-multiarch)/
 
-COPY passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz /usr/local/sources
+# NOTE: check the detached signature before using the tarball. passenger_enterprise/phusion-signing-key.asc is Phusion's
+#       automated software signing key (https://oss-binaries.phusionpassenger.com/auto-software-signing-gpg-key.txt). It
+#       isn't committed, so the grep pins its fingerprint: a swapped key can't vouch for a swapped tarball. gpgv (always
+#       present: apt depends on it) needs the key dearmored, and prints VALIDSIG only for a good signature
+COPY passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz.asc passenger_enterprise/phusion-signing-key.asc /usr/local/sources/
+RUN gpg --dearmor < /usr/local/sources/phusion-signing-key.asc > /usr/local/sources/phusion-signing-key.gpg &&\
+    gpgv --status-fd 1 --keyring /usr/local/sources/phusion-signing-key.gpg /usr/local/sources/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz.asc /usr/local/sources/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz | grep -F "[GNUPG:] VALIDSIG 16378A33A6EF16762922526E561F9B9CAC40B2F7 "
 
 RUN tar zxf /usr/local/sources/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz &&\
     cd passenger-enterprise-server-${PASSENGER_VERSION} &&\
@@ -421,8 +430,12 @@ RUN wget https://github.com/sto/ngx_http_auth_pam_module/archive/refs/tags/v${HT
 RUN wget https://github.com/nginx-modules/ngx_cache_purge/archive/refs/tags/${CACHE_PURGE_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/${CACHE_PURGE_MODULE_VERSION}.tar.gz
 # directory name: nginx-dav-ext-module-${DAV_EXT_MODULE_VERSION}
 RUN wget https://github.com/arut/nginx-dav-ext-module/archive/refs/tags/v${DAV_EXT_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${DAV_EXT_MODULE_VERSION}.tar.gz
+# NOTE: OpenResty's fork rather than the original vision5/ngx_devel_kit, which has stopped merging fixes: nginx 1.30.4's
+#       script engine change (CVE-2026-42533 fix) needs an end opcode after each complex value, which only the fork emits
+#       (v0.3.6+ detects it in the nginx headers); without it, set_by_lua arguments containing variables read a bad value
+#       (https://github.com/vision5/ngx_devel_kit/issues/43)
 # directory name: ngx_devel_kit-${DEVEL_KIT_MODULE_VERSION}
-RUN wget https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v${DEVEL_KIT_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${DEVEL_KIT_MODULE_VERSION}.tar.gz
+RUN wget https://github.com/openresty/ngx_devel_kit/archive/refs/tags/v${DEVEL_KIT_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${DEVEL_KIT_MODULE_VERSION}.tar.gz
 # directory name: echo-nginx-module-${ECHO_MODULE_VERSION}
 RUN wget https://github.com/openresty/echo-nginx-module/archive/refs/tags/v${ECHO_MODULE_VERSION}.tar.gz -P /usr/local/sources && tar zxf /usr/local/sources/v${ECHO_MODULE_VERSION}.tar.gz
 # directory name: ngx-fancyindex-${FANCYINDEX_MODULE_VERSION}
@@ -483,18 +496,13 @@ ENV NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES="\
 RUN wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/nginx-${NGINX_VERSION}.tar.gz
 
-# NOTE: the hiredis pre-seed below pins what mruby-redis would otherwise clone unpinned from master (see HIREDIS_VERSION)
 # NOTE: NGX_MRUBY_CFLAGS: GCC >= 14 (Ubuntu 26.04 ships GCC 15) promotes these legacy-C warnings to hard errors, which
 #       breaks mruby-acme-client (old CRuby openssl port); downgrade them back to warnings. Severity-only, no-op on older GCC.
 RUN wget https://github.com/matsumotory/ngx_mruby/archive/refs/tags/v${NGX_MRUBY_VERSION}.tar.gz -P /usr/local/sources &&\
     tar zxf /usr/local/sources/v${NGX_MRUBY_VERSION}.tar.gz &&\
     cd ngx_mruby-${NGX_MRUBY_VERSION} &&\
     ./configure --with-ngx-src-root=/usr/local/build/nginx-${NGINX_VERSION} --with-ngx-config-opt='${NGINX_CONFIGURE_OPTIONS_WITHOUT_MODULES' &&\
-    wget https://github.com/redis/hiredis/archive/refs/tags/v${HIREDIS_VERSION}.tar.gz -P /usr/local/sources &&\
-    tar zxf /usr/local/sources/v${HIREDIS_VERSION}.tar.gz &&\
-    mkdir -p mruby/build/host/mrbgems/mruby-redis &&\
-    mv hiredis-${HIREDIS_VERSION} mruby/build/host/mrbgems/mruby-redis/hiredis &&\
-    NGX_MRUBY_CFLAGS="-Wno-error=incompatible-pointer-types -Wno-error=int-conversion" make build_mruby &&\
+    NGX_MRUBY_CFLAGS="-Wno-error=incompatible-pointer-types -Wno-error=int-conversion" MRUBY_REDIS_HIREDIS_VERSION=v${HIREDIS_VERSION} make build_mruby &&\
     make generate_gems_config
 
 # NOTE: original --with-cc-opt had -Wdate-time, but that throws an error for the NGINX rtmp module, so removing it: https://github.com/arut/nginx-rtmp-module/issues/1235
@@ -542,7 +550,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-module=/usr/local/build/ModSecurity-nginx-v${MODSECURITY_MODULE_VERSION}" >> real_configure &&\
     chmod +x ./real_configure &&\
     ./real_configure &&\
-    make &&\
+    make -j$(nproc) &&\
     make install
 
 # make sure we have these as part of the deb
@@ -640,7 +648,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-dynamic-module=$(passenger-config --nginx-addon-dir)" >> real_passenger_configure &&\
     chmod +x ./real_passenger_configure &&\
     ./real_passenger_configure &&\
-    make modules
+    make -j$(nproc) modules
 
 RUN current_state.sh before
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
@@ -695,7 +703,7 @@ RUN cd nginx-${NGINX_VERSION} &&\
         --add-dynamic-module=$(passenger-config --nginx-addon-dir)" >> real_passenger_enterprise_configure &&\
     chmod +x ./real_passenger_enterprise_configure &&\
     ./real_passenger_enterprise_configure &&\
-    make modules
+    make -j$(nproc) modules
 
 RUN current_state.sh before
 RUN cp /usr/local/build/nginx-${NGINX_VERSION}/objs/ngx_http_passenger_module.so /usr/lib/nginx/modules/ngx_http_passenger_module.so
