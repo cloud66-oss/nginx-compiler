@@ -22,15 +22,15 @@ case $1 in
 	;;
     22.04)
 	OPERATING_SYSTEM_CODENAME=jammy
-        OPENSSL_VERSION=3.0.21
+        OPENSSL_VERSION=3.0.22
 	;;
     24.04)
 	OPERATING_SYSTEM_CODENAME=noble
-        OPENSSL_VERSION=3.0.21
+        OPENSSL_VERSION=3.0.22
 	;;
     26.04)
 	OPERATING_SYSTEM_CODENAME=resolute
-        OPENSSL_VERSION=3.5.7
+        OPENSSL_VERSION=3.5.9
 	;;
     *)
 	echo "Unknown operating system"
@@ -50,19 +50,22 @@ esac
 
 INCLUDE_PASSENGER_ENTERPRISE=false
 OUTPUT_DIRECTORY="output.passenger"
+PASSENGER_EDITION="passenger"
 PASSENGER_ENTERPRISE_LICENSE="passenger_enterprise/passenger-enterprise-license"
 PASSENGER_ENTERPRISE_TARBALL="passenger_enterprise/passenger-enterprise-server-${3}.tar.gz"
 if [[ -f "${PASSENGER_ENTERPRISE_LICENSE}" ]] && [[ -f "${PASSENGER_ENTERPRISE_TARBALL}" ]]; then
     INCLUDE_PASSENGER_ENTERPRISE=true
     OUTPUT_DIRECTORY="output.passenger_enterprise"
+    PASSENGER_EDITION="passenger-enterprise"
 fi
 
 # create output build logs folder
 mkdir -p $OUTPUT_DIRECTORY/build_logs
 # define build log file
 build_log_file="$OUTPUT_DIRECTORY/build_logs/build-ubuntu-$1-$5-nginx-$2-passenger-$3-release-$4.log"
-# define the next tag
-tag="cloud66-nginx:ubuntu-$1-$5-nginx-$2-passenger-$3-release-$4"
+# define the next tag (it includes the Passenger edition so that standard and Enterprise builds running at the same time don't share
+# an image; extract_nginx.sh must use the same tag)
+tag="cloud66-nginx:ubuntu-$1-$5-nginx-$2-$PASSENGER_EDITION-$3-release-$4"
 # remove previous build
 docker rmi --force $tag >/dev/null 2>&1
 # build new version

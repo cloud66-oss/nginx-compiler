@@ -17,7 +17,7 @@ You can compile NGINX for a specific combination of Ubuntu + NGINX + Passenger +
 This will result in a Docker image which will contain NGINX + Passenger in a single tarball.
 
 ### Passenger Enterprise
-You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal.
+You can optionally compile Passenger Enterprise. To do this, you must have both the `passenger_enterprise/passenger-enterprise-license` (containing the Passenger Enterprise license) and `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz` (containing the Passenger Enterprise source code) files present in the source root. Both can be acquired from the Passenger Enterprise portal, along with the source code's signature, `passenger_enterprise/passenger-enterprise-server-${PASSENGER_VERSION}.tar.gz.asc`, which must also be present, as must Phusion's signing key, saved as `passenger_enterprise/phusion-signing-key.asc` (download it from https://oss-binaries.phusionpassenger.com/auto-software-signing-gpg-key.txt). The build checks that the source code was signed by that key and fails if any of these files is missing or the check doesn't pass.
 
 ## Extraction
 To extract the tarball from the Docker image, you can run the following (for your combination of Ubuntu + NGINX + Passenger + release versions and CPU architecture):
