@@ -16,6 +16,14 @@ fi
 
 # NOTE: for OPENSSL_VERSION use latest patch of the major/minor installed on the OS
 case $1 in
+    16.04)
+	OPERATING_SYSTEM_CODENAME=xenial
+        OPENSSL_VERSION=1.0.2u
+	;;
+    18.04)
+	OPERATING_SYSTEM_CODENAME=bionic
+        OPENSSL_VERSION=1.1.1w
+	;;
     20.04)
 	OPERATING_SYSTEM_CODENAME=focal
         OPENSSL_VERSION=1.1.1w
